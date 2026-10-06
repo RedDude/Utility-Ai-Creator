@@ -3,8 +3,9 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Threading.Tasks;
-using NSubstitute.Exceptions;
+#if UNITY_EDITOR
 using UnityEditor;
+#endif
 using UniRx;
 using UnityEngine;
 
@@ -17,6 +18,7 @@ public class PlayAbleAiService: PersistSingleFile
     public static PlayAbleAiService Instance => _instance ??= new PlayAbleAiService();
     private static PlayAbleAiService _instance;
 
+#if UNITY_EDITOR
     [InitializeOnLoadMethod]
     private static void InitializeOnLoad()
     {
@@ -59,21 +61,14 @@ public class PlayAbleAiService: PersistSingleFile
         
         DebugService.Log("Initialized editor mode complete Ais Count: " + Instance.PlayAbleAIs.Count, this);
     }
-
-    [RuntimeInitializeOnLoadMethod]
-    private static void InitPlayMode()
+#else
+    private PlayAbleAiService()
     {
-        DebugService.Log("Initializing playmode", Instance);
-
-        AsyncHelpers.RunSync(Instance.RestoreService);
-        
-        DebugService.Log("Initialized playmode complete Ais Count: " + Instance.PlayAbleAIs.Count, Instance);
-        if (Instance.PlayAbleAIs.Count == 0)
-        {
-            DebugService.LogWarning("No Playable Ais", Instance);
-        }
     }
-    
+#endif
+
+    // The saved Uais are loaded lazily on the first GetAiByName, so a scene that never asks for an
+    // Ai (for example the bot is off) never touches the saved files and never logs a load error.
 
     public IObservable<List<Uai>> OnAisChanged => onAisChanged;
     // ReSharper disable once InconsistentNaming
@@ -87,7 +82,12 @@ public class PlayAbleAiService: PersistSingleFile
             // DebugService.LogWarning("No playable Ais. Have you marked an ai PlayAble", this);
             // return null;
         }
-        var ai = PlayAbleAIs.FirstOrDefault(ai => ai.Name == name) ?? PlayAbleAIs.First();
+        var ai = PlayAbleAIs.FirstOrDefault(ai => ai.Name == name) ?? PlayAbleAIs.FirstOrDefault();
+        if (ai == null)
+        {
+            DebugService.LogWarning("No playable Ai found (requested: " + name + "). Mark an Ai as playable in the UAI Creator Template Manager.", this);
+            return null;
+        }
         DebugService.Log("GetAiByName requested name: " + name +" returning: " + ai.Name,this);
         return ai.Clone() as Uai;
     }
@@ -109,6 +109,7 @@ public class PlayAbleAiService: PersistSingleFile
         }
     }
 
+#if UNITY_EDITOR
     internal void UpdateAisFromTemplateService(bool saveAfterUpdate)
     {
         PlayAbleAIs = new List<Uai>();
@@ -134,6 +135,9 @@ public class PlayAbleAiService: PersistSingleFile
         onAisChanged.OnNext(PlayAbleAIs);
     }
     
+#endif
+
+#if UNITY_EDITOR
     private void ExitingPlayMode()
     {
         DebugService.Log("Exiting Editor Mode", this);
@@ -192,6 +196,7 @@ public class PlayAbleAiService: PersistSingleFile
         ClearSubscriptions();
         DebugService.Log("Destroying complete", this);
     }
+#endif
 
     protected override async Task RestoreFromFile(SingleFileState state)
     {

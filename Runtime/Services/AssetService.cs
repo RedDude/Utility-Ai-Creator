@@ -6,7 +6,9 @@ using System.Linq;
 using System.Runtime.Serialization.Formatters.Binary;
 using System.Text;
 using System.Threading.Tasks;
+#if UNITY_EDITOR
 using UnityEditor;
+#endif
 using UnityEngine;
 using UnityEngine.UIElements;
 
@@ -15,6 +17,7 @@ public static class AssetService
     private static readonly Dictionary<string,string> cachedPaths = new Dictionary<string,string>();
     private static readonly Dictionary<string,VisualTreeAsset> cachedVisualTrees = new Dictionary<string, VisualTreeAsset>();
     private static BinaryFormatter _binaryFormatter = new BinaryFormatter();
+#if UNITY_EDITOR
     public static string GetAssetPath(string filter, string type)
     {
         if (cachedPaths.ContainsKey(filter + type))
@@ -70,6 +73,8 @@ public static class AssetService
         var template = GetVisualTreeAsset(name);
         return template.CloneTree();
     }
+
+#endif
 
     public static T GetFirstInstanceOfType<T>()
     {

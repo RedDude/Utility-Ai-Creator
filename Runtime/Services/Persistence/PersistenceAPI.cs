@@ -5,8 +5,9 @@ using System.Diagnostics;
 using System.IO;
 using System.Linq;
 using System.Threading.Tasks;
-using Codice.Client.BaseCommands.Changelist;
+#if UNITY_EDITOR
 using UnityEditor;
+#endif
 using UnityEngine;
 using Debug = UnityEngine.Debug;
 
@@ -25,6 +26,7 @@ internal class PersistenceAPI
 
     #region Save
 
+#if UNITY_EDITOR
     internal async Task SaveObjectPanelAsync(RestoreAble o)
     {
         var extension = FileExtensionService.GetFileExtensionFromType(o.GetType());
@@ -55,6 +57,7 @@ internal class PersistenceAPI
         }
     }
 
+#endif
     internal async Task SaveObjectDestructivelyAsync(object o, string path)
     {
         var startTime = DateTime.Now;
@@ -104,6 +107,7 @@ internal class PersistenceAPI
 
     #region Load
 
+#if UNITY_EDITOR
     internal async Task<ObjectMetaData<T>> LoadObjectPanel<T>()
     {
         var extension = FileExtensionService.GetFileExtensionFromType(typeof(T));
@@ -119,6 +123,7 @@ internal class PersistenceAPI
         return o;
     }
     
+#endif
     internal ObjectMetaData<T> LoadObjectPath<T>(string path)
     {
         var result = Persister.LoadObject<T>(path);
@@ -193,12 +198,14 @@ internal class PersistenceAPI
         }
     }
 
+#if UNITY_EDITOR
     internal async Task<ObjectMetaData<T>> LoadFilePanel<T>(string[] filters)
     {
         var path = EditorUtility.OpenFilePanelWithFilters("Load object", "", filters);
         var res = await LoadObjectPathAsync<T>(path);
         return res;
     }
+#endif
 
     #endregion
 

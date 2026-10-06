@@ -15,7 +15,13 @@ public static class Consts
     internal const string ProjectSettingsPath =
         PathMainFolder + "Settings/ProjectSettings." + FileExtension_ProjectSettings;
 
+#if UNITY_EDITOR
     internal static string CurrentProjectPath => ProjectSettingsService.Instance.GetCurrentProjectDirectory();
+#else
+    // A player has no UAS project folder. The editor copies the playable Ai and the ticker settings
+    // to StreamingAssets/UAS/ when it builds (see Editor/Build/UasBuildFiles.cs).
+    internal static string CurrentProjectPath => UnityEngine.Application.streamingAssetsPath + "/UAS/";
+#endif
     internal static string Folder_TickerSettings_Complete => Folder_TickerSettings + FileName_TickerSettings + "/";
     internal static string Folder_PlayAbleAi_Complete => Folder_PLayAbleAi + FileName_PLayAbleAi + "/";
 

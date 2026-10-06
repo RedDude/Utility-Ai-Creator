@@ -6,7 +6,9 @@ using System.Threading.Tasks;
 using System.IO;
 using System.Threading;
 using UniRx;
+#if UNITY_EDITOR
 using UnityEditor;
+#endif
 using UnityEngine;
 
 internal class ProjectSettingsService
@@ -73,6 +75,7 @@ internal class ProjectSettingsService
         SaveSettings();
     }
 
+#if UNITY_EDITOR
     internal async Task CreateProject()
     {
         var path = EditorUtility
@@ -85,12 +88,14 @@ internal class ProjectSettingsService
         await TemplateService.Instance.Save();
     }
 
+#endif
     private void SetProjectName(string path)
     {
         model.CurrentProjectName = new DirectoryInfo(path).Name;
         SaveSettings();
     }
 
+#if UNITY_EDITOR
     internal async Task SaveProjectAs()
     {
         var path = EditorUtility
@@ -116,6 +121,7 @@ internal class ProjectSettingsService
         if (path.Length == 0) return;
         SetProjectPath(path);
     }
+#endif
 
     internal void SaveSettings()
     {

@@ -3,7 +3,10 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
 using UniRx;
+#if UNITY_EDITOR
 using UnityEditor;
+#endif
+using UnityEngine;
 using Debug = UnityEngine.Debug;
 
 internal class UaiTicker
@@ -38,7 +41,9 @@ internal class UaiTicker
     {
         AsyncHelpers.RunSync(Init);
 
+#if UNITY_EDITOR
         EditorApplication.playModeStateChanged += HandlePLayModeStateChange;
+#endif
 
         if (Debug.isDebugBuild)
         {
@@ -49,6 +54,7 @@ internal class UaiTicker
         }
     }
 
+#if UNITY_EDITOR
     private void HandlePLayModeStateChange(PlayModeStateChange playModeChange)
     {
         if (playModeChange == PlayModeStateChange.ExitingEditMode)
@@ -57,6 +63,17 @@ internal class UaiTicker
 
             AsyncHelpers.RunSync(SaveSettings);
         }
+    }
+#endif
+
+    // True while the game is playing and not paused (the editor's pause button counts).
+    private static bool CanTick()
+    {
+#if UNITY_EDITOR
+        return EditorApplication.isPlaying && !EditorApplication.isPaused;
+#else
+        return true;
+#endif
     }
 
     private async Task Init()
@@ -88,8 +105,7 @@ internal class UaiTicker
 
     public void TickAgent(IAgent agent)
     {
-        if (!EditorApplication.isPlaying) return;
-        if (EditorApplication.isPaused) return;
+        if (!CanTick()) return;
         TickCount++;
         var metaData = new TickMetaData
         {
@@ -105,23 +121,26 @@ internal class UaiTicker
             .Subscribe(completedTickCount =>
             {
                 if (completedTickCount < targetTickCount) return;
+#if UNITY_EDITOR
                 if (pauseOnComplete)
                 {
                     EditorApplication.isPaused = true;
                 }
+#endif
                 Stop();
                 tickUntilTargetTickSub.Dispose();
             });
         Start();
+#if UNITY_EDITOR
         EditorApplication.isPaused = false;
         EditorApplication.isPlaying = true;
+#endif
     }
 
     
     public void TickAis()
     {
-        if (!EditorApplication.isPlaying) return;
-        if (EditorApplication.isPaused) return;
+        if (!CanTick()) return;
         TickCount++;
         var metaData = new TickMetaData
         {
@@ -168,7 +187,9 @@ internal class UaiTicker
     {
         DebugService.Log("Destroying",this);
         disposables.Clear();
+#if UNITY_EDITOR
         EditorApplication.playModeStateChanged -= HandlePLayModeStateChange;
+#endif
         DebugService.Log("Destroying Complete",this);
 
     }

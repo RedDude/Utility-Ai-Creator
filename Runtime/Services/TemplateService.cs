@@ -6,7 +6,9 @@ using System.Collections.Generic;
 using System.Linq;
 using System.IO;
 using System.Threading.Tasks;
+#if UNITY_EDITOR
 using UnityEditor;
+#endif
 
 internal class TemplateService: PersistSingleFile
 {
@@ -49,6 +51,7 @@ internal class TemplateService: PersistSingleFile
     internal static TemplateService Instance => _instance ??= new TemplateService();
     private System.Guid id;
 
+#if UNITY_EDITOR
     [InitializeOnLoadMethod]
     private static void InitializeOnLoad()
     {
@@ -60,15 +63,19 @@ internal class TemplateService: PersistSingleFile
         }
     }
     
+#endif
+
     private TemplateService()
     {
         Init(true);
         id = Guid.NewGuid();
         DebugService.Log("ID set: " + id, this);
+#if UNITY_EDITOR
         EditorApplication.playModeStateChanged += HandlePlaymodeStateChange;
-
+#endif
     }
 
+#if UNITY_EDITOR
     private void HandlePlaymodeStateChange(PlayModeStateChange obj)
     {
         if (obj == PlayModeStateChange.EnteredEditMode)
@@ -86,6 +93,8 @@ internal class TemplateService: PersistSingleFile
             DebugService.Log("OnExit PlayAble Completed",nameof(TemplateService));
         }
     }
+
+#endif
 
     private void Init(bool restore)
     {
@@ -467,7 +476,9 @@ internal class TemplateService: PersistSingleFile
     {
         DebugService.Log("Destroying",this);
         subscriptions.Clear();
+#if UNITY_EDITOR
         EditorApplication.playModeStateChanged -= HandlePlaymodeStateChange;
+#endif
         DebugService.Log("Destroying Complete",this);
     }
 
