@@ -44,7 +44,8 @@ public class UCSHighestScore : UtilityContainerSelector
 
         if (utility <= 0)
         {
-            return null;
+            // A zero-utility container is not selectable, but it must not discard the best one found so far.
+            return bestContainer;
         }
 
         if (bestContainer == null)
