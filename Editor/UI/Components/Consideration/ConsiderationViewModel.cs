@@ -6,7 +6,7 @@ using System.Threading.Tasks;
 using UnityEditor;
 using UnityEngine.UIElements;
 using UniRx;
-using UnityEditor.UIElements;
+
 using UnityEngine;
 
 internal class ConsiderationViewModel : AiObjectViewModel 

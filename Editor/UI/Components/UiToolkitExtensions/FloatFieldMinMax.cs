@@ -3,9 +3,9 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
-using UnityEditor.UIElements;
 
-internal class FloatFieldMinMax: FloatField
+
+internal class FloatFieldMinMax: UnityEngine.UIElements.FloatField
 {
     public float Min = float.MinValue;
     public float Max = float.MaxValue;

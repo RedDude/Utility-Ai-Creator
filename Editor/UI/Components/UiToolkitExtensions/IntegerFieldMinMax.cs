@@ -3,9 +3,9 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
-using UnityEditor.UIElements;
 
-public class IntegerFieldMinMax: IntegerField
+
+public class IntegerFieldMinMax: UnityEngine.UIElements.IntegerField
 {
     public int min = int.MinValue;
 
