@@ -11,16 +11,7 @@ namespace UniRxExtension
 
         public override void Add(T element)
         {
-            var numberOfIdenticalNames = Values
-            .Where(e => e.Name.Contains(element.Name))
-            .ToList()
-            .Count;
-
-            if (numberOfIdenticalNames > 0)
-            {
-                element.Name += "(" + numberOfIdenticalNames + ")";
-            }
-
+            MakeNameUnique(element);
             base.Add(element);
         }
 
@@ -29,17 +20,23 @@ namespace UniRxExtension
             var aiObjectModels = elements.ToList();
             foreach (var element in aiObjectModels)
             {
-                var numberOfIdenticalNames = Values
-                    .Where(e => e.Name.Contains(element.Name))
-                    .ToList()
-                    .Count;
-
-                if (numberOfIdenticalNames > 0)
-                {
-                    element.Name += "(" + numberOfIdenticalNames + ")";
-                }
+                MakeNameUnique(element);
             }
             base.Add(aiObjectModels);
+        }
+
+        // New elements (e.g. freshly created actions) can have a null name, and so can existing ones.
+        private void MakeNameUnique(T element)
+        {
+            if (string.IsNullOrEmpty(element.Name)) return;
+
+            var numberOfIdenticalNames = Values
+                .Count(e => e != null && !string.IsNullOrEmpty(e.Name) && e.Name.Contains(element.Name));
+
+            if (numberOfIdenticalNames > 0)
+            {
+                element.Name += "(" + numberOfIdenticalNames + ")";
+            }
         }
         
         public void Sort()

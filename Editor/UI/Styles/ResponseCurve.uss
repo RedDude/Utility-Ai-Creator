@@ -1,19 +1,137 @@
-﻿#Segment {
-    flex-shrink: 1;
-    min-width: 64px;
-    max-width: 56px;
-    margin-left: 8px;
-    margin-right: 8px;
+/* Bar of segments under the chart; 50px left margin and a 50px button on the right line it up with the graph area. */
+#SegmentRow {
+    flex-direction: row;
+    align-items: center;
+    flex-shrink: 0;
+    margin-top: 4px;
+    margin-bottom: 6px;
 }
 
-#Segment > FloatFieldMinMax {
-    flex-shrink: 1;
+#SegmentBar {
+    flex-grow: 1;
+    height: 22px;
+    margin-left: 50px;
+    overflow: hidden;
+    background-color: rgba(0, 0, 0, 0.25);
+    border-width: 1px;
+    border-color: rgba(0, 0, 0, 0.5);
+    border-radius: 3px;
+}
+
+#AddFunctionButton {
+    width: 50px;
+    margin: 0;
+    padding: 0;
+}
+
+.segment-block {
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    padding-left: 6px;
+    padding-right: 6px;
+    font-size: 10px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    -unity-text-align: middle-center;
+}
+
+.segment-handle {
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    width: 8px;
+    margin-left: -4px;
+    cursor: resize-horizontal;
+    background-color: rgba(255, 255, 255, 0.18);
+}
+
+.segment-handle:hover,
+.segment-handle--active {
+    background-color: rgba(255, 255, 255, 0.55);
+}
+
+/* Function cards: all one width, alternating shade. */
+#FunctionsContainer {
+    flex-shrink: 0;
+}
+
+.function-card {
+    width: 200px;
+    min-width: 200px;
+    max-width: 200px;
     flex-grow: 0;
-/*    max-width: 0px;
-    width: 0px;*/
-    flex-direction: column-reverse;
+    flex-shrink: 0;
+    padding: 0 6px 6px 6px;
+    border-top-width: 3px;
+    border-left-width: 2px;
+    border-right-width: 2px;
+    border-left-color: rgba(0, 0, 0, 0);
+    border-right-color: rgba(0, 0, 0, 0);
+}
+
+.function-card--even {
+    background-color: rgba(255, 255, 255, 0.05);
+}
+
+.function-card--odd {
+    background-color: rgba(0, 0, 0, 0.2);
+}
+
+.function-card--dragging {
+    opacity: 0.45;
+}
+
+.function-card--drop-before {
+    border-left-color: rgb(255, 255, 255);
+}
+
+.function-card--drop-after {
+    border-right-color: rgb(255, 255, 255);
+}
+
+.function-card__header {
+    flex-direction: row;
     align-items: center;
-} 
+    height: 20px;
+}
+
+.function-card__grip {
+    width: 20px;
+    height: 16px;
+    margin-right: 4px;
+    padding: 0 3px;
+    justify-content: center;
+    border-radius: 2px;
+    cursor: move-arrow;
+}
+
+.function-card__grip:hover {
+    background-color: rgba(255, 255, 255, 0.15);
+}
+
+.function-card__grip-line {
+    height: 1px;
+    margin: 1px 0;
+    background-color: rgba(255, 255, 255, 0.55);
+}
+
+.function-card__title {
+    flex-grow: 1;
+    font-size: 11px;
+    -unity-font-style: bold;
+}
+
+.function-card__segment {
+    margin-top: 4px;
+}
+
+.function-card__end-label {
+    margin-top: 4px;
+    font-size: 10px;
+    -unity-font-style: italic;
+    opacity: 0.6;
+}
 
 ResponseFunctionComponent > TemplateContainer {
     justify-content: space-between;
@@ -28,6 +146,3 @@ ResponseFunctionComponent > TemplateContainer {
 #Footer{
     margin-top: 8px;
 }
-
-
-

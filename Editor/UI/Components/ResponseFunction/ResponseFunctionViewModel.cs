@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using UnityEditor.UIElements;
 using UnityEngine.UIElements;
 using UniRx;
 using UnityEngine;
@@ -34,6 +35,7 @@ internal class ResponseFunctionViewModel: VisualElement
         Add(root);
 
         typeDropdown = root.Q<DropdownField>("TypeDropdown");
+        SearchableDropdown.Attach(typeDropdown);
         body = root.Q<VisualElement>("Body");
         removeButton = root.Q<Button>("RemoveButton");
 
@@ -64,6 +66,13 @@ internal class ResponseFunctionViewModel: VisualElement
         disposables.Clear();
         foreach(var parameter in responseFunction.Parameters)
         {
+            // A freeform curve is edited with Unity's own curve editor instead of a text field.
+            if (responseFunction is CurveFunction curveFunction && parameter.Name == "Keys")
+            {
+                body.Add(CreateCurveField(curveFunction));
+                continue;
+            }
+
             var pC = new ParameterComponent();
             pC.UpdateUi(parameter);
             body.Add(pC);
@@ -77,6 +86,19 @@ internal class ResponseFunctionViewModel: VisualElement
             removeButton.SetEnabled(false);
             removeButton.style.flexGrow = 0;
         }
+    }
+
+    private static CurveField CreateCurveField(CurveFunction curveFunction)
+    {
+        var field = new CurveField("Curve")
+        {
+            value = curveFunction.GetCurve(),
+            ranges = new Rect(0f, 0f, 1f, 1f)
+        };
+        field.tooltip = "Click to edit the curve: add keys, drag points and tangents";
+        field.style.minHeight = 48;
+        field.RegisterValueChangedCallback(evt => curveFunction.SetCurve(evt.newValue));
+        return field;
     }
 
     ~ResponseFunctionViewModel()

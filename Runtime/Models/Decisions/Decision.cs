@@ -89,11 +89,11 @@ public class Decision: UtilityContainer
         base.UpdateInfo();
         if (AgentActions.Count <= 0)
         {
-            Info = new InfoModel("No AgentActions, Object won't be selected", InfoTypes.Warning);
+            Info = new InfoModel("This Decision has no Actions, so it won't be selected", InfoTypes.Warning);
         }
         else if (Considerations.Count <= 0)
         {
-            Info = new InfoModel("No Considerations, Object won't be selected", InfoTypes.Warning);
+            Info = new InfoModel("This Decision has no Considerations, so it won't be selected", InfoTypes.Warning);
         }
         else
         {

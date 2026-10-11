@@ -7,7 +7,7 @@
             </ui:VisualElement>
             <ui:VisualElement name="DescriptionContainer" style="flex-direction: row; flex-grow: 1; flex-wrap: wrap; margin-left: 3px; margin-top: 2px;">
                 <ui:Label text="Description:" display-tooltip-when-elided="true" name="Description-Label" style="-unity-font-style: bold;" />
-                <ui:Label text="Soem bver y long description agbout a lot of stuff what to do and hwar to say" display-tooltip-when-elided="true" name="DescriptionText-Label" style="flex-grow: 0; white-space: normal;" />
+                <ui:Label text="" display-tooltip-when-elided="true" name="DescriptionText-Label" style="flex-grow: 0; white-space: normal;" />
             </ui:VisualElement>
         </ui:VisualElement>
         <ui:VisualElement name="Right" style="flex-grow: 1;" />

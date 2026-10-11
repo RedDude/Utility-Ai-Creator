@@ -5,11 +5,11 @@
             <ui:VisualElement style="flex-direction: row; justify-content: space-between;">
                 <ui:VisualElement name="TickCountContainer" style="flex-direction: row;">
                     <ui:Label text="Tick#:" display-tooltip-when-elided="true" name="TickCount-Label" />
-                    <ui:Label text="1021" display-tooltip-when-elided="true" name="TickCountValue-Label" />
+                    <ui:Label text="0" display-tooltip-when-elided="true" name="TickCountValue-Label" />
                 </ui:VisualElement>
                 <ui:VisualElement name="Info2Container" style="flex-direction: row;">
-                    <ui:Label text="Tick#:" display-tooltip-when-elided="true" name="Info2Id-Label" />
-                    <ui:Label text="1021" display-tooltip-when-elided="true" name="Info2Value-Label" />
+                    <ui:Label text="" display-tooltip-when-elided="true" name="Info2Id-Label" />
+                    <ui:Label text="0" display-tooltip-when-elided="true" name="Info2Value-Label" />
                 </ui:VisualElement>
                 <ui:Toggle label="Auto Run" name="AutoRun-Toggle" />
             </ui:VisualElement>

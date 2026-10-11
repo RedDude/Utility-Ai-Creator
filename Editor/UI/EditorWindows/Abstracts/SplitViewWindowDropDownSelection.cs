@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using UnityEditor;
@@ -17,6 +17,9 @@ internal abstract class SplitViewWindowDropDownSelection<T> : EditorWindow
     private VisualElement rightContainer;
     private VisualElement buttonContainer;
     private RightPanelComponent<T> rightPanelComponent;
+    private ListView listView;
+    private HelpBox emptyState;
+    private readonly List<T> listElements = new List<T>();
 
     private DropdownField identifierDropdown;
 
@@ -25,9 +28,8 @@ internal abstract class SplitViewWindowDropDownSelection<T> : EditorWindow
     private IDisposable agentCollectionUpdatedSub;
     private T selectedElement;
     private ReactiveList<T> elements;
-    private int SelectedIndex => elements.Values.IndexOf(selectedElement);
+    private int SelectedIndex => elements == null ? -1 : elements.Values.IndexOf(selectedElement);
     private AgentManager agentManager => AgentManager.Instance;
-    private StyleSheet buttonSelectedStyle;
     protected Toolbar ToolbarTop;
     public void CreateGUI()
     {
@@ -38,21 +40,36 @@ internal abstract class SplitViewWindowDropDownSelection<T> : EditorWindow
         leftContainer = root.Q<VisualElement>("LeftContainer");
         rightContainer = root.Q<VisualElement>("RightContainer");
         buttonContainer = root.Q<VisualElement>("ButtonContainer");
+        SplitCollapseService.Attach(root.Q<TwoPaneSplitView>(), "Agents");
 
         identifierDropdown = root.Q<DropdownField>("AgentType-Dropdown");
-        buttonSelectedStyle = StylesService.GetStyleSheet("ButtonSelected");
+        SearchableDropdown.Attach(identifierDropdown);
+        identifierDropdown.label = "Agent Type";
+        identifierDropdown.RegisterCallback<ChangeEvent<string>>(evt =>
+        {
+            if (!agentManager.AgentIdentifiers.Contains(evt.newValue)) return;
+            UpdateLeftPanel(evt.newValue);
+        });
         ToolbarTop = root.Q<Toolbar>("ToolbarTop");
 
+        InitList();
+
+        // Agents only exist while the game runs, so say so instead of showing an empty window.
+        emptyState = new HelpBox("", HelpBoxMessageType.Info);
+        emptyState.style.marginTop = 6;
+        emptyState.style.marginLeft = 6;
+        emptyState.style.marginRight = 6;
+
         rightPanelComponent = GetRightPanelComponent();
+        rightContainer.Add(emptyState);
         rightContainer.Add(rightPanelComponent);
+        rightPanelComponent.style.display = DisplayStyle.None;
 
         agentTypesChangedSub = agentManager
             .AgentIdentifiersUpdated
             .Subscribe(_ => InitDropDown());
 
         InitDropDown();
-
-        UpdateLeftPanel();
 
         agentCollectionUpdatedSub = agentManager
             .AgentsUpdated
@@ -64,36 +81,88 @@ internal abstract class SplitViewWindowDropDownSelection<T> : EditorWindow
                 }
             });
 
+        EditorApplication.playModeStateChanged += OnPlayModeChanged;
 
+        // Trickle-down so the arrows move the selection exactly once, whether or not the list has focus.
         root.RegisterCallback<KeyDownEvent>(key =>
         {
-            if (key.keyCode == KeyCode.UpArrow && key.ctrlKey)
+            var typing = key.target is TextElement;
+            var handled = false;
+            if (typing || elements == null || elements.Count == 0)
+            {
+                // leave keys alone while typing or when there is nothing to select
+            }
+            else if (key.keyCode == KeyCode.UpArrow && key.ctrlKey)
             {
                 SelectElementAtIndex(0);
+                handled = true;
             }
             else if (key.keyCode == KeyCode.UpArrow)
             {
                 SelectElementAtIndex(SelectedIndex - ConstsEditor.Logger_StepSize);
+                handled = true;
             }
             else if (key.keyCode == KeyCode.DownArrow && key.ctrlKey)
             {
                 SelectElementAtIndex(elements.Count - 1);
+                handled = true;
             }
             else if (key.keyCode == KeyCode.DownArrow)
             {
                 SelectElementAtIndex(SelectedIndex + ConstsEditor.Logger_StepSize);
+                handled = true;
             }
 
             KeyPressed(key);
-        });
+            if (handled) key.StopImmediatePropagation();
+        }, TrickleDown.TrickleDown);
 
         Init();
+        UpdateEmptyState();
     }
 
     protected virtual void Init() { }
 
+    private void OnPlayModeChanged(PlayModeStateChange change)
+    {
+        UpdateEmptyState();
+    }
+
+    private void InitList()
+    {
+        listView = new ListView(listElements)
+        {
+            selectionType = SelectionType.Single,
+            fixedItemHeight = 22,
+            showAlternatingRowBackgrounds = AlternatingRowBackground.ContentOnly,
+            showBorder = true,
+            makeItem = () =>
+            {
+                var label = new Label();
+                label.style.unityTextAlign = TextAnchor.MiddleLeft;
+                label.style.paddingLeft = 6;
+                return label;
+            }
+        };
+        listView.bindItem = (element, index) =>
+        {
+            if (index < 0 || index >= listElements.Count) return;
+            ((Label) element).text = GetNameFromElement(listElements[index]);
+        };
+        listView.style.flexGrow = 1;
+        listView.selectionChanged += items =>
+        {
+            var picked = items.OfType<T>().ToList();
+            if (picked.Count == 0) return;
+            if (EqualityComparer<T>.Default.Equals(picked[0], selectedElement)) return;
+            SelectedElement = picked[0];
+        };
+        buttonContainer.Add(listView);
+    }
+
     private void SelectElementAtIndex(int index)
     {
+        if (elements == null || elements.Count == 0) return;
 
         if (index < 0)
         {
@@ -110,21 +179,21 @@ internal abstract class SplitViewWindowDropDownSelection<T> : EditorWindow
     private void InitDropDown()
     {
         identifierDropdown.choices = agentManager.AgentIdentifiers;
-        // identifierDropdown.choices.Add("Demo");
-        identifierDropdown.label = "Agent Types";
         if (agentManager.AgentIdentifiers.Count > 0)
         {
-            identifierDropdown.value = identifierDropdown.choices.First();
+            identifierDropdown.SetValueWithoutNotify(identifierDropdown.choices.First());
+            identifierDropdown.SetEnabled(true);
+            UpdateLeftPanel(identifierDropdown.value);
         }
         else
         {
-            identifierDropdown.value = "No agents found in scene";
+            // No fake "value": the empty-state message explains what is going on.
+            identifierDropdown.SetValueWithoutNotify(null);
+            identifierDropdown.SetEnabled(false);
+            elements = null;
+            elementChangedSub?.Dispose();
+            LoadElements(new List<T>());
         }
-
-        identifierDropdown.RegisterCallback<ChangeEvent<string>>(evt =>
-        {
-            UpdateLeftPanel(evt.newValue);
-        });
     }
 
     protected abstract ReactiveList<T> GetLeftPanelElements(string identifier);
@@ -132,6 +201,7 @@ internal abstract class SplitViewWindowDropDownSelection<T> : EditorWindow
     private void UpdateLeftPanel(string identifier = null)
     {
         identifier ??= identifierDropdown.value;
+        if (string.IsNullOrEmpty(identifier)) return;
         elements = GetLeftPanelElements(identifier);
 
         elementChangedSub?.Dispose();
@@ -145,25 +215,35 @@ internal abstract class SplitViewWindowDropDownSelection<T> : EditorWindow
     private void LoadElements(List<T> newElements)
     {
         SelectedElement = default(T);
-        buttonContainer.Clear();
-        elementNameUpdatedSub?.Clear();
+        listElements.Clear();
+        listElements.AddRange(newElements);
+        listView.ClearSelection();
+        listView.Rebuild();
+        UpdateEmptyState();
+    }
 
-        foreach (var e in newElements)
+    private void UpdateEmptyState()
+    {
+        if (emptyState == null) return;
+
+        if (listElements.Count > 0)
         {
-            var button = new Button
-            {
-                text = GetNameFromElement(e),
-                style =
-                {
-                    unityTextAlign = TextAnchor.MiddleLeft
-                }
-            };
-            button.RegisterCallback<MouseUpEvent>(evt =>
-            {
-                SelectedElement = e;
-            });
+            emptyState.style.display = DisplayStyle.None;
+            return;
+        }
 
-            buttonContainer.Add(button);
+        emptyState.style.display = DisplayStyle.Flex;
+        if (!Application.isPlaying)
+        {
+            emptyState.messageType = HelpBoxMessageType.Warning;
+            emptyState.text = "This window needs Play Mode: agents only exist while the game is running " +
+                              "(each one registers itself when it starts). Press Play and they will be listed here.";
+        }
+        else
+        {
+            emptyState.messageType = HelpBoxMessageType.Info;
+            emptyState.text = "No agents found. An agent registers itself when it starts, " +
+                              "so it needs an active AgentMono component in the scene.";
         }
     }
 
@@ -176,14 +256,19 @@ internal abstract class SplitViewWindowDropDownSelection<T> : EditorWindow
 
     private void SelectedElementChanged()
     {
-        rightPanelComponent.UpdateUi(SelectedElement);
-        if (elements.Count <= 0) return;
-        var buttons = buttonContainer.Query<Button>().ToList();
-        buttons.ForEach(b => b.styleSheets.Remove(buttonSelectedStyle));
+        var hasSelection = !EqualityComparer<T>.Default.Equals(SelectedElement, default(T));
+        rightPanelComponent.style.display = hasSelection ? DisplayStyle.Flex : DisplayStyle.None;
+        if (hasSelection)
+        {
+            rightPanelComponent.UpdateUi(SelectedElement);
+        }
 
-        var button = buttonContainer.Query<Button>().AtIndex(SelectedIndex);
-        if (button == null) return;
-        button.styleSheets.Add(buttonSelectedStyle);
+        var index = SelectedIndex;
+        if (index >= 0 && listView != null)
+        {
+            listView.SetSelectionWithoutNotify(new[] { index });
+            listView.ScrollToItem(index);
+        }
     }
 
     private T SelectedElement
@@ -202,19 +287,17 @@ internal abstract class SplitViewWindowDropDownSelection<T> : EditorWindow
         agentTypesChangedSub?.Dispose();
         agentCollectionUpdatedSub?.Dispose();
         elementNameUpdatedSub.Clear();
+        EditorApplication.playModeStateChanged -= OnPlayModeChanged;
     }
 
     private void OnDestroy()
     {
         WindowOpener.windowPosition = this.position;
-        // var persistenceAPI = PersistenceAPI.Instance;
-        // UasTemplateService.Instance.Save();
-        //persistenceAPI.SaveObjectPath(UASTemplateService.Instance, Consts.File_UASTemplateService_AutoSave);
         ClearSubscriptions();
     }
 
-    ~SplitViewWindowDropDownSelection()
+    private void OnDisable()
     {
-        ClearSubscriptions();
+        EditorApplication.playModeStateChanged -= OnPlayModeChanged;
     }
 }

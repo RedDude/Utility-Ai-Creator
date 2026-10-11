@@ -1,42 +1,36 @@
-﻿using System;
+using System;
 using UnityEngine;
 using UnityEngine.UIElements;
 
+/// <summary>Shows an object's info or warning as a callout (HelpBox) and hides itself when there is nothing to say.</summary>
 internal class InfoViewModel: VisualElement
 {
     private readonly TemplateContainer root;
-    private readonly Label infoText;
+    private readonly HelpBox callout;
 
     internal InfoViewModel()
     {
         root = AssetService.GetTemplateContainer(GetType().FullName);
         Add(root);
-        infoText = root.Q<Label>("InfoText");
+        root.Q<Label>("InfoText").style.display = DisplayStyle.None;
+
+        callout = new HelpBox("", HelpBoxMessageType.Info);
+        callout.style.marginTop = 2;
+        callout.style.marginBottom = 2;
+        root.Add(callout);
+        style.display = DisplayStyle.None;
     }
 
     internal void DispalyInfo(InfoModel info)
     {
-        switch (info.InfoType)
+        if (string.IsNullOrEmpty(info.Info))
         {
-            case InfoTypes.Info:
-                DisplayNormal(info.Info);
-                break;
-            case InfoTypes.Warning:
-                DisplayWarning(info.Info);
-                break;
+            style.display = DisplayStyle.None;
+            return;
         }
-    }
 
-    private void DisplayNormal(string text)
-    {
-        infoText.text = text;
-        infoText.style.color = Color.white;
-
-    }
-
-    private void DisplayWarning(string text)
-    {
-        infoText.text = text;
-        infoText.style.color = Color.red;
+        callout.messageType = info.InfoType == InfoTypes.Warning ? HelpBoxMessageType.Warning : HelpBoxMessageType.Info;
+        callout.text = info.Info;
+        style.display = DisplayStyle.Flex;
     }
 }

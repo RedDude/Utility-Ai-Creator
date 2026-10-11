@@ -9,9 +9,8 @@ using UniRxExtension;
 
 internal class WindowOpener: EditorWindow
 {
-    public static Rect windowPosition = new Rect(0f, 0f, 1400f, 624f);
-    public static Vector2 windowMinSize = new Vector2(1400f, 624f);
-    private static EditorWindow _templateManager;
+    public static Rect windowPosition = new Rect(0f, 0f, 1200f, 624f);
+    public static Vector2 windowMinSize = new Vector2(900f, 500f);
 
 
 
@@ -41,10 +40,24 @@ internal class WindowOpener: EditorWindow
         wnd.position = windowPosition;
 
         SetWindowSizeAboveMin(wnd);
-        _templateManager = wnd;
         wnd.Show();
     }
     
+    private const string IncludeDemosMenu = Consts.MenuName + "Include Demo Files";
+
+    [MenuItem(IncludeDemosMenu, false, 200)]
+    private static void ToggleIncludeDemos()
+    {
+        TemplateService.Instance.IncludeDemos = !TemplateService.Instance.IncludeDemos;
+    }
+
+    [MenuItem(IncludeDemosMenu, true)]
+    private static bool ToggleIncludeDemosValidate()
+    {
+        Menu.SetChecked(IncludeDemosMenu, TemplateService.Instance.IncludeDemos);
+        return true;
+    }
+
     [MenuItem(Consts.MenuName + Consts.Window_RuntimeInspector_Name)]
     public static void OpenRuntimeInspector()
     {
@@ -76,33 +89,16 @@ internal class WindowOpener: EditorWindow
 
     }
 
-    public static ResponseCurveWindow GetNewResponseCurveWindow()
-    {
-        ResponseCurveWindow wnd = CreateWindow<ResponseCurveWindow>();
-        wnd.titleContent = new GUIContent("Response Curve");
-
-        if(_templateManager != null)
-        {
-            wnd.position = _templateManager.position;
-
-        } else
-        {
-            wnd.position = windowPosition;
-        }
-        SetWindowSizeAboveMin(wnd);
-        return wnd;
-    }
-
     private static void SetWindowSizeAboveMin(EditorWindow wnd)
     {
-        if (wnd.position.x < windowMinSize.x)
-        {
-            windowPosition.x = windowMinSize.x;
-        }
+        wnd.minSize = windowMinSize;
 
-        if (windowPosition.y < windowMinSize.y)
+        var pos = wnd.position;
+        if (pos.width < windowMinSize.x || pos.height < windowMinSize.y)
         {
-            windowPosition.y = windowMinSize.y;
+            pos.width = Mathf.Max(pos.width, windowMinSize.x);
+            pos.height = Mathf.Max(pos.height, windowMinSize.y);
+            wnd.position = pos;
         }
     }
 }

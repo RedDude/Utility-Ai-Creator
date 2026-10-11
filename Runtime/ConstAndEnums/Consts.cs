@@ -185,9 +185,14 @@ public static class Consts
     public const string Text_Button_SortByPerformance = "Performance Sort";
     public const string Text_Button_SortByWeight = "Sort By Weight";
     public const string Text_Button_Folded = "Expand";
-    public const string Text_Button_Expanded = "Fold";
-    public const string Text_Button_Up = "+";
-    public const string Text_Button_Down = "-";
+    public const string Text_Button_Expanded = "Collapse";
+    public const string Text_Button_Up = "↑";
+    public const string Text_Button_Down = "↓";
+    public const string Tooltip_Button_Folded = "Show all details of this item";
+    public const string Tooltip_Button_Expanded = "Show only the summary of this item";
+    public const string Tooltip_Button_Up = "Move this item up in the list";
+    public const string Tooltip_Button_Down = "Move this item down in the list";
+    public const string Tooltip_Button_Remove = "Remove this item from the list";
 
     internal const string LineBreakBaseTypes = "----Base Types----";
     internal const string LineBreakTemplates = "----Templates----";

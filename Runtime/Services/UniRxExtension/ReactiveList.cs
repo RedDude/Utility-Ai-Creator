@@ -95,6 +95,17 @@ namespace UniRxExtension
             List[index] = itemToReplace;
             onValueChanged.OnNext(List);
         }
+        public void MoveTo(T element, int newIndex)
+        {
+            var index = List.IndexOf(element);
+            if (index < 0) return;
+            newIndex = Mathf.Clamp(newIndex, 0, List.Count - 1);
+            if (newIndex == index) return;
+            List.RemoveAt(index);
+            List.Insert(newIndex, element);
+            onValueChanged.OnNext(Values);
+        }
+
         public int Count => List.Count;
 
 

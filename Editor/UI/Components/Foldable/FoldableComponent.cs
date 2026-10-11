@@ -36,9 +36,10 @@ public class FoldableComponent : VisualElement
         Clear();
         Add(GetActiveElement());
         
-        //TODO Only touch the active element
-        Expanded.Touch();
-        Folded.Touch();
+        // Only the visible view is rebuilt. Building the expanded editor of every folded item
+        // (each one nests a whole collection tree) made selecting and expanding slow.
+        if (IsFolded) Folded.Touch();
+        else Expanded.Touch();
     }
 
     public VisualElement GetActiveElement()

@@ -33,6 +33,18 @@ public static class AssetService
                 paths.Add(AssetDatabase.GUIDToAssetPath(guid));
             }
 
+            // FindAssets is a fuzzy name search (e.g. "ListView" also finds Addressables'
+            // DrillableListViewItem.uxml), so prefer an exact file name with the right extension.
+            foreach (var p in paths)
+            {
+                if (Path.GetFileNameWithoutExtension(p) == filter &&
+                    p.EndsWith("." + type, StringComparison.OrdinalIgnoreCase))
+                {
+                    cachedPaths.Add(filter+ type, p);
+                    return p;
+                }
+            }
+
             foreach (var p in paths)
             {
                 if (p.Contains(type))
@@ -176,9 +188,14 @@ public static class AssetService
     public static T GetInstanceOfType<T>(string typeName)
     {
         var assemblies = GetAssemblies();
+        Type simpleNameMatch = null;
         foreach (var assembly in assemblies)
         {
             var types = assembly.GetTypes();
+
+            // The add lists show the plain type name, but ToString() of a type in a namespace is "Namespace.Name".
+            simpleNameMatch ??= types.FirstOrDefault(t =>
+                t.Name == typeName && !t.IsAbstract && typeof(T).IsAssignableFrom(t));
 
             var type = types.FirstOrDefault(t => t.ToString() == typeName);
             if (type != null)
@@ -194,7 +211,7 @@ public static class AssetService
                 return instance;
             }
         }
-        return default(T);
+        return simpleNameMatch != null ? (T)AiObjectFactory.CreateInstance(simpleNameMatch) : default(T);
     }
 
     /// <summary>

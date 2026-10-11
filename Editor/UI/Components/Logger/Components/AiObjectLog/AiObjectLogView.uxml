@@ -10,7 +10,7 @@
             </ui:VisualElement>
             <ui:VisualElement name="DescriptionContainer" style="flex-direction: row; flex-wrap: wrap;">
                 <ui:Label text="Description: " display-tooltip-when-elided="true" name="Label" />
-                <ui:Label text="Some very long description lorem ipsum stuffa bout alaads as " display-tooltip-when-elided="true" name="Description-Label" style="white-space: normal;" />
+                <ui:Label text="" display-tooltip-when-elided="true" name="Description-Label" style="white-space: normal;" />
             </ui:VisualElement>
         </ui:VisualElement>
         <ui:VisualElement name="ScoreContainer" style="flex-direction: row;" />

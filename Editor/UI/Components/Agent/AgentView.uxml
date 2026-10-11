@@ -1,9 +1,9 @@
 <ui:UXML xmlns:ui="UnityEngine.UIElements" xmlns:uie="UnityEditor.UIElements" xsi="http://www.w3.org/2001/XMLSchema-instance" engine="UnityEngine.UIElements" editor="UnityEditor.UIElements" noNamespaceSchemaLocation="../../../../../../UIElementsSchema/UIElements.xsd" editor-extension-mode="True">
-    <ui:VisualElement name="Header" style="flex-direction: row;">
-        <ui:Label text="Label" display-tooltip-when-elided="true" name="AgentName" />
+    <ui:VisualElement name="Header" style="flex-direction: row; align-items: center; margin-bottom: 6px; padding-left: 4px;">
+        <ui:Label text="" display-tooltip-when-elided="true" name="AgentName" style="-unity-font-style: bold; font-size: 13px; align-self: center;" />
         <ui:VisualElement name="Spacer" style="flex-grow: 1;" />
-        <ui:DropdownField label="Dropdown" index="-1" choices="System.Collections.Generic.List`1[System.String]" name="Ai-Dropdown" />
+        <ui:DropdownField label="AI" index="-1" choices="System.Collections.Generic.List`1[System.String]" name="Ai-Dropdown" />
     </ui:VisualElement>
     <ui:VisualElement name="Body" style="flex-grow: 1;" />
-    <ui:VisualElement name="Footer" style="flex-direction: row;" />
+    <ui:VisualElement name="Footer" style="flex-direction: row; justify-content: flex-end; margin-top: 6px;" />
 </ui:UXML>

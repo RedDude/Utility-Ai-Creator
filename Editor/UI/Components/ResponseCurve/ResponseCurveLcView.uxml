@@ -1,15 +1,16 @@
 <ui:UXML xmlns:ui="UnityEngine.UIElements" xmlns:uie="UnityEditor.UIElements" xsi="http://www.w3.org/2001/XMLSchema-instance" engine="UnityEngine.UIElements" editor="UnityEditor.UIElements" noNamespaceSchemaLocation="../../../../../../UIElementsSchema/UIElements.xsd" editor-extension-mode="True">
     <ui:VisualElement name="Header" style="flex-direction: row; justify-content: space-between; flex-grow: 0; -unity-text-align: upper-center; align-items: center;">
         <ui:Label text="Label" display-tooltip-when-elided="true" name="Name-Label" />
-        <ui:DropdownField label="Response Curve" index="-1" choices="System.Collections.Generic.List`1[System.String]" name="ResponseCurve-Dropdown" style="flex-direction: row; justify-content: flex-end;" />
+        <ui:VisualElement name="HeaderActions" style="flex-direction: row; align-items: center; flex-shrink: 1;">
+            <ui:DropdownField label="Response Curve" index="-1" choices="System.Collections.Generic.List`1[System.String]" name="ResponseCurve-Dropdown" style="flex-direction: row; justify-content: flex-end;" />
+        </ui:VisualElement>
     </ui:VisualElement>
     <ui:VisualElement name="Body" style="flex-grow: 1;">
         <ui:VisualElement name="CurveContainer" style="flex-grow: 1;" />
+        <ui:VisualElement name="SegmentRow">
+            <ui:VisualElement name="SegmentBar" />
+            <ui:Button text="+ Add" tooltip="Add function" display-tooltip-when-elided="true" name="AddFunctionButton" />
+        </ui:VisualElement>
         <ui:ScrollView name="FunctionsContainer" mode="Horizontal" />
-    </ui:VisualElement>
-    <ui:VisualElement name="Footer" style="flex-direction: row; justify-content: space-between;">
-        <ui:Button text="Add Function" display-tooltip-when-elided="true" name="AddFunctionButton" vertical-scroller-visibility="Hidden" />
-        <uie:ToolbarToggle focusable="false" label="Inverse" name="Inverse-ToolbarToggle" style="-unity-text-align: upper-center; align-items: center; flex-grow: 0; flex-shrink: 1;" />
-        <ui:Button text="Save Template" display-tooltip-when-elided="true" name="SaveTemplateButton" />
     </ui:VisualElement>
 </ui:UXML>

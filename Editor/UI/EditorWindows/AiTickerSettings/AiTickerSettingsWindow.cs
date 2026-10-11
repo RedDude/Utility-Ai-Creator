@@ -116,7 +116,7 @@ internal class AiTickerSettingsWindow: EditorWindow
             info2Label.text = "FPS: ";
             info2Value.text = "0";
             tickerModeSub = cast.OnLastFrameRateChanged
-                .Subscribe(fps => info2Label.text = fps.ToString());
+                .Subscribe(fps => info2Value.text = fps.ToString());
         } else if (tickerMode.GetType() == typeof(TickerModeTimeBudget))
         {
             var cast = tickerMode as TickerModeTimeBudget;

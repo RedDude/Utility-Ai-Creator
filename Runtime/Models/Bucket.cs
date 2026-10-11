@@ -109,7 +109,7 @@ public class Bucket : UtilityContainer
             Info = new InfoModel("No Decisions, Object won't be selected",InfoTypes.Warning);
         } else if (Considerations.Count <= 0)
         {
-            Info = new InfoModel("No Considerations, Object won't be selected", InfoTypes.Warning);
+            Info = new InfoModel("This Bucket has no Considerations of its own (its Decisions' Considerations do not count), so it won't be selected", InfoTypes.Warning);
         } else
         {
             Info = new InfoModel();

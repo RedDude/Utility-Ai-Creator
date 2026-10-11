@@ -24,7 +24,6 @@ internal class AiViewModel : AiObjectViewModel
     private readonly TabViewViewModel tabView;
     private readonly Button bucketTab;
     private Button settingsTab;
-    private readonly HelpBox playAbleHelpBox;
 
     private readonly CollectionViewModel<Bucket> bucketCollection;
 
@@ -34,7 +33,6 @@ internal class AiViewModel : AiObjectViewModel
         Body.Clear();
         Body.Add(root);
         collectionsContainer = root.Q<VisualElement>("CollectionsContainer");
-        playAbleHelpBox = new HelpBox("Not set to playable!", HelpBoxMessageType.Warning);
         tabView = new TabViewViewModel();
         collectionsContainer.Add(tabView);
 
@@ -46,6 +44,13 @@ internal class AiViewModel : AiObjectViewModel
         {
             name = "Playable-Toggle"
         };
+        // The default 150px label pushed the checkbox out of the narrow Scores column, so it looked missing.
+        playableToggle.labelElement.style.minWidth = 0;
+        playableToggle.labelElement.style.width = StyleKeyword.Auto;
+        playableToggle.labelElement.style.marginRight = 6;
+        playableToggle.style.flexShrink = 0;
+        playableToggle.style.marginLeft = 4;
+        playableToggle.style.marginRight = 4;
 
         bucketDropdown = new DropdownContainerViewModel<UtilityContainerSelector>("Bucket Selector");
         settingsContainer.Add(bucketDropdown);
@@ -60,6 +65,19 @@ internal class AiViewModel : AiObjectViewModel
         decisionDropdown.name = "DropdownScorerCollection";
         utilityScorerDropdown.name = "DropdownScorerCollection";
 
+        // Settings as one form column: a fixed label column, then the value, one setting per row.
+        // Inline styles: the old stylesheet rules (#SettingsContainer row, 30% widths) are ID selectors that beat classes.
+        settingsContainer.style.flexDirection = FlexDirection.Row;
+        settingsContainer.style.width = new Length(100, LengthUnit.Percent);
+        settingsContainer.style.justifyContent = Justify.SpaceBetween;
+        settingsContainer.style.alignItems = Align.FlexStart;
+        settingsContainer.style.paddingTop = 4;
+        var columns = new VisualElement[] { bucketDropdown, decisionDropdown, utilityScorerDropdown };
+        for (var i = 0; i < columns.Length; i++)
+        {
+            StyleSettingsColumn(columns[i], isLast: i == columns.Length - 1);
+        }
+
         bucketTab = tabView.AddTabGroup("Buckets", bucketCollection);
         settingsTab = tabView.AddTabGroup("Settings", settingsContainer);
          
@@ -67,20 +85,59 @@ internal class AiViewModel : AiObjectViewModel
         {
             if (uaiModel == null) return;
             uaiModel.IsPLayAble = evt.newValue;
-
-            UpdateHelpBox(evt.newValue);
+            uaiModel.RefreshInfo(); // the model does not recompute its warning when the flag changes
         });
     }
 
-    private void UpdateHelpBox(bool hide)
+    // One settings column: label above the picker, description and options underneath.
+    // flex-basis 0 + equal grow keeps every column at the same width whatever option is picked.
+    private static void StyleSettingsColumn(VisualElement row, bool isLast)
     {
-        if (hide)
+        row.style.width = StyleKeyword.Auto;
+        row.style.flexGrow = 1;
+        row.style.flexShrink = 1;
+        row.style.flexBasis = 0;
+        row.style.minWidth = 0;
+        row.style.alignSelf = Align.Stretch;
+        row.style.marginLeft = 0;
+        row.style.marginRight = 0;
+        row.style.marginTop = 0;
+        row.style.marginBottom = 0;
+        row.style.paddingLeft = 12;
+        row.style.paddingRight = 12;
+        row.style.paddingTop = 6;
+        row.style.paddingBottom = 8;
+        // A divider between neighbouring columns.
+        row.style.borderRightWidth = isLast ? 0 : 1;
+        row.style.borderRightColor = new Color(0.5f, 0.5f, 0.5f, 0.4f);
+
+        foreach (var container in row.Query<VisualElement>().Build().ToList())
         {
-            playAbleHelpBox.style.display = DisplayStyle.None;
+            if (container.name == "Horizontal" || container.name == "Left" || container.name == "DropdownContainer")
+            {
+                container.style.flexGrow = 1;
+                container.style.alignItems = Align.Stretch;
+            }
+            else if (container.name == "Right")
+            {
+                container.style.display = DisplayStyle.None;
+            }
         }
-        else
+
+        var dropdown = row.Q<DropdownField>();
+        if (dropdown == null) return;
+        dropdown.style.flexDirection = FlexDirection.Column;
+        dropdown.style.alignSelf = Align.Stretch;
+        dropdown.style.marginLeft = 0;
+        dropdown.style.marginRight = 0;
+        dropdown.labelElement.style.minWidth = 0;
+        dropdown.labelElement.style.width = StyleKeyword.Auto;
+        dropdown.labelElement.style.unityFontStyleAndWeight = FontStyle.Bold;
+        var input = dropdown.Q(className: "unity-base-popup-field__input");
+        if (input != null)
         {
-            playAbleHelpBox.style.display = DisplayStyle.Flex;
+            input.style.flexGrow = 1;
+            input.style.minWidth = 0;
         }
     }
 
@@ -91,7 +148,6 @@ internal class AiViewModel : AiObjectViewModel
         uaiModel = model as Uai;
 
         ScoreContainer.Add(playableToggle);
-        ScoreContainer.Add(playAbleHelpBox);
 
         Debug.Assert(uaiModel != null, nameof(uaiModel) + " != null");
         bucketTab.text = "Buckets (" + uaiModel.Buckets.Count + ")";
@@ -101,7 +157,6 @@ internal class AiViewModel : AiObjectViewModel
         
         
         playableToggle.SetValueWithoutNotify(uaiModel.IsPLayAble);
-        UpdateHelpBox(playableToggle.value);
 
         if (uaiModel == null)
         {

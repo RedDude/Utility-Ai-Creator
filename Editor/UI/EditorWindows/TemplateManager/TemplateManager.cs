@@ -20,12 +20,11 @@ internal class TemplateManager : EditorWindow
 
     private VisualElement root;
     private VisualElement leftPanel;
-    private VisualElement elementsContainer;
+    private ListView listView;
+    private readonly List<AiObjectModel> listModels = new List<AiObjectModel>();
     private VisualElement rightPanel;
-    private Button copyButton;
-    private Button deleteButton;
-    private Button sortButton;
-    private PopupField<string> addElementPopup;
+    private Button addElementButton;
+    private List<string> addElementChoices = new List<string>();
     private List<string> dropDownChoices;
     private DropdownField dropDown;
     private TemplateService templateService => TemplateService.Instance;
@@ -58,18 +57,18 @@ internal class TemplateManager : EditorWindow
         var treeAsset = AssetService.GetVisualTreeAsset(GetType().FullName);
         treeAsset.CloneTree(root);
         toolbar = root.Q<Toolbar>();
+        toolbar.style.alignItems = Align.Center; // buttons and menus on one line, vertically centred
 
         dropDown = root.Q<DropdownField>("TypeDropdown");
 
         leftPanel = root.Q<VisualElement>("left-panel");
-        elementsContainer = leftPanel.Q<VisualElement>("ButtonContainer");
+        SplitCollapseService.Attach(root.Q<TwoPaneSplitView>(), "Categories");
+        InitList(leftPanel.Q<ListView>("ButtonContainer"));
 
         root.Q<VisualElement>("Buttons");
-        addElementPopup = new PopupField<string>("Add element");
+        addElementButton = new Button { text = "+ Add element", tooltip = "Add a new element (searchable list)" };
+        addElementButton.style.unityFontStyleAndWeight = FontStyle.Bold;
         var addElementPopupContainer = root.Q<VisualElement>("AddElementPopupContainer");
-        copyButton = root.Q<Button>("CopyButton");
-        deleteButton = root.Q<Button>("DeleteButton");
-        sortButton = root.Q<Button>("ClearButton");
         rightPanel = root.Q<VisualElement>("right-panel");
 
         
@@ -77,34 +76,13 @@ internal class TemplateManager : EditorWindow
         InitToolbarFile();
         InitToolbarDebug();
         InitToolBarSettings();
-        InitToolbarDemos();
         InitDropdown();
         UpdateLeftPanel();
-        addElementPopupContainer.Add(addElementPopup);
+        addElementPopupContainer.Add(addElementButton);
+        SearchableDropdown.Attach(addElementButton, () => addElementChoices, () => null, picked => AddAiObject(picked));
 
         
         // Subscribe
-        copyButton.RegisterCallback<MouseUpEvent>(_ =>
-        {
-            DebugService.Log("TT! Copy Pressed", this);
-            CopySelectedElements();
-        });
-
-        deleteButton.RegisterCallback<MouseUpEvent>(_ =>
-        {
-            DeleteSelectedElements();
-        });
-
-        sortButton.text = "Sort";
-        sortButton.RegisterCallback<MouseUpEvent>(_ =>
-        {
-            var type = MainWindowService.Instance.GetTypeFromString(dropDown.value);
-            var collection = templateService.GetCollection(type) as ReactiveListNameSafe<AiObjectModel>;
-            collection?.Sort();
-        });
-        
-        addElementPopup.RegisterCallback<ChangeEvent<string>>(AddAiObject);
-
         TemplateService.Instance.OnIncludeDemosChanged
             .Subscribe(_ =>
             {
@@ -125,17 +103,21 @@ internal class TemplateManager : EditorWindow
             .AddTo(disposables);
     }
 
-    private async void AddAiObject(ChangeEvent<string> evt)
+    private async void AddAiObject(string picked)
     {
-        if (evt.newValue != null && evt.newValue != Consts.LineBreakBaseTypes && evt.newValue != Consts.LineBreakTemplates && evt.newValue != Consts.LineBreakDemos)
+        if (picked != null && picked != Consts.LineBreakBaseTypes && picked != Consts.LineBreakTemplates && picked != Consts.LineBreakDemos)
         {
             var type = MainWindowService.Instance.GetTypeFromString(dropDown.value);
             var collection = templateService.GetCollection(type);
-            var aiObject = await AddCopyService.GetAiObjectClone(evt.newValue, collection.Values);
+            var aiObject = await AddCopyService.GetAiObjectClone(picked, collection.Values);
+            if (aiObject == null)
+            {
+                Debug.LogWarning("UAI: could not create \"" + picked + "\".");
+                return;
+            }
             templateService.Add(aiObject);
             ModelSelected(aiObject);
         }
-        addElementPopup.SetValueWithoutNotify(null);
     }
 
     void OnEnable()
@@ -285,7 +267,7 @@ internal class TemplateManager : EditorWindow
     private async void ExportFiles(DropdownMenuAction _)
     {
         var saveObjects = new List<AiObjectModel>();
-        selectedObjects.ForEach(pair => saveObjects.Add(pair.Key));
+        selectedObjects.ForEach(model => saveObjects.Add(model));
         var path = EditorUtility.SaveFolderPanel("Export", ProjectSettingsService.Instance.model.LastProjectDirectory,"Export Folder");
         foreach (var saveObject in saveObjects)
         {
@@ -330,27 +312,10 @@ internal class TemplateManager : EditorWindow
         toolbar.Add(menu);
     }
 
-    private void InitToolbarDemos()
-    {
-        var includeDemos = new ToolbarToggle
-        {
-            text = "include Demo Files"
-        };
-
-        includeDemos.RegisterCallback<ChangeEvent<bool>>(evt =>
-        {
-            TemplateService.Instance.IncludeDemos = evt.newValue;
-        });
-        includeDemos.SetValueWithoutNotify(TemplateService.Instance.IncludeDemos);
-
-        toolbar.Add(includeDemos);
-    }
-
 
     private void UpdateButtons()
     {
-        copyButton.SetEnabled(SelectedModel != null);
-        deleteButton.SetEnabled(SelectedModel != null);
+        // Copy / Delete / Sort live in the list context menu; nothing to enable or disable.
     }
 
     private void AddNewAiObject(string aiObjectName)
@@ -381,7 +346,7 @@ internal class TemplateManager : EditorWindow
         var results = new List<AiObjectModel>();
         foreach (var o in selectedObjects)
         {
-            var result = o.Key.Clone();
+            var result = o.Clone();
             results.Add(result);
             modelToSelect = result;
         }
@@ -392,9 +357,7 @@ internal class TemplateManager : EditorWindow
 
     private void DeleteSelectedElements()
     {
-        var toDelete = selectedObjects
-            .Select(element => element.Key)
-            .ToList();
+        var toDelete = selectedObjects.ToList();
         
         
         foreach(var element in toDelete)
@@ -422,9 +385,11 @@ internal class TemplateManager : EditorWindow
 
         dropDown.label = "Categories";
         dropDown.choices = dropDownChoices;
-        dropDown.value = dropDownChoices[0];
+        var savedCategory = TemplateManagerStateService.GetCategory();
+        dropDown.value = dropDownChoices.Contains(savedCategory) ? savedCategory : dropDownChoices[0];
         dropDown.RegisterCallback<ChangeEvent<string>>(evt =>
         {
+            TemplateManagerStateService.SetCategory(evt.newValue);
             if(currentMainWindowViewModel != null)
             {
                 currentMainWindowViewModel.style.display = DisplayStyle.None;
@@ -464,162 +429,170 @@ internal class TemplateManager : EditorWindow
     {
         var type = MainWindowService.Instance.GetTypeFromString(dropDown.value);
         var collection = templateService.GetCollection(type);
-        addElementPopup.choices = AddCopyService.GetChoices(type, collection.Values);
+        addElementChoices = AddCopyService.GetChoices(type, collection.Values);
     }
+
+    // True while the list is rebuilt, so the selection cleared by the rebuild is not saved over the remembered one.
+    private bool loadingModels;
 
     private void LoadModels(List<AiObjectModel> models)
     {
+        var rememberedSelection = TemplateManagerStateService.GetSelection(dropDown.value);
+
         SelectedModel = null;
-        elementsContainer.Clear();
-        buttons.Clear();
         selectedObjects.Clear();
         modelsChangedSubscriptions.Clear();
         DebugService.Log("Loading " + models.Count + " models", this);
 
+        loadingModels = true;
+        listModels.Clear();
+        listModels.AddRange(models);
+        listView.itemsSource = listModels;
+        listView.ClearSelection();
+        listView.Rebuild();
+        loadingModels = false;
+        RestoreSelection(rememberedSelection);
+
         foreach (var model in models)
         {
-            DebugService.Log("Loading model: " + model.Name, this);
-            var button = new Button
-            {
-                text = model.GetUiName(),
-                style =
-                {
-                    unityTextAlign = TextAnchor.MiddleLeft
-                }
-            };
-            button.RegisterCallback<MouseUpEvent>(evt =>
-            {
-                ObjectClicked(model, button, evt);
-            });
-            elementsContainer.Add(button);
-            buttons.Add(button);
             model.OnNameChanged
-                .Subscribe(_ => button.text = model.GetUiName())
+                .Subscribe(_ => listView.RefreshItems())
                 .AddTo(modelsChangedSubscriptions);
         }
         UpdateButtons();
     }
 
-    private readonly List<Button> buttons = new List<Button>();
-    private List<KeyValuePair<AiObjectModel,Button>> selectedObjects = new List<KeyValuePair<AiObjectModel, Button>>();
-
-    private void ObjectClicked(AiObjectModel model, Button button, MouseUpEvent e)
+    private void RestoreSelection(HashSet<Guid> remembered)
     {
-        if(e.ctrlKey)
+        var indices = new List<int>();
+        for (var i = 0; i < listModels.Count; i++)
         {
-            var isSelected = selectedObjects.FirstOrDefault(o => o.Key == model).Key;
-            if (isSelected == null)
-            {
-                selectedObjects.Add(new KeyValuePair<AiObjectModel, Button>(model, button));
-            } else
-            {
-                selectedObjects = selectedObjects.Where(o => o.Key != model).ToList();
-            }
-        } 
-        else if (e.shiftKey)
+            if (remembered.Contains(listModels[i].Guid)) indices.Add(i);
+        }
+        if (indices.Count == 0) return;
+
+        listView.SetSelection(indices);
+        listView.ScrollToItem(indices[0]);
+    }
+
+    private List<AiObjectModel> selectedObjects = new List<AiObjectModel>();
+
+    // The left side is a real list: one row per element, native single / ctrl / shift selection,
+    // and a context menu for copy, delete and sort.
+    private void InitList(ListView list)
+    {
+        listView = list;
+        listView.itemsSource = listModels;
+        listView.selectionType = SelectionType.Multiple;
+        listView.fixedItemHeight = 24;
+        listView.showAlternatingRowBackgrounds = AlternatingRowBackground.ContentOnly;
+        listView.showBorder = true;
+        listView.style.flexGrow = 1;
+
+        listView.makeItem = () =>
         {
-            var selectedIndex = buttons.IndexOf(button);
-            var lowestSelectedIndex = int.MaxValue;
-            var highestSelectedIndex = int.MinValue;
-            selectedObjects
-                .ForEach(pair =>
-                {
-                    var i = buttons.IndexOf(pair.Value);
-                    if (i < lowestSelectedIndex)
-                    {
-                        lowestSelectedIndex = i;
-                    }
-                    if (i > highestSelectedIndex)
-                    {
-                        highestSelectedIndex = i;
-                    }
-                });
-            if (selectedIndex < lowestSelectedIndex)
+            var row = new VisualElement();
+            row.style.flexDirection = FlexDirection.Row;
+            row.style.alignItems = Align.Center;
+            row.style.paddingLeft = 4;
+            row.style.flexGrow = 1;
+            var badge = new Label { name = "Badge" };
+            badge.style.minWidth = 56;
+            badge.style.marginRight = 6;
+            var label = new Label { name = "Title" };
+            label.style.flexGrow = 1;
+            label.style.overflow = Overflow.Hidden;
+            label.style.textOverflow = TextOverflow.Ellipsis;
+            row.Add(badge);
+            row.Add(label);
+            return row;
+        };
+        listView.bindItem = (element, index) =>
+        {
+            if (index < 0 || index >= listModels.Count) return;
+            var model = listModels[index];
+            element.Q<Label>("Title").text = model.GetUiName();
+            var badge = element.Q<Label>("Badge");
+            badge.text = model.GetTypeDescription();
+            TypeStyleService.Apply(badge, model, true);
+        };
+
+        listView.selectionChanged += items =>
+        {
+            selectedObjects = items.OfType<AiObjectModel>().ToList();
+            if (!loadingModels) TemplateManagerStateService.SetSelection(dropDown.value, selectedObjects);
+            var model = selectedObjects.LastOrDefault();
+            SelectedModel = model;
+            if (model != null) ShowModel(model);
+        };
+
+        listView.RegisterCallback<KeyDownEvent>(evt =>
+        {
+            if (evt.keyCode == KeyCode.Delete && selectedObjects.Count > 0)
             {
-                selectedObjects.Clear();
-                for(var i = selectedIndex; i <= lowestSelectedIndex; i++)
-                {
-                    var m = templateService.GetCollection(dropDown.value).Values[i];
-                    var b = buttons[i];
-                    selectedObjects.Add(new KeyValuePair<AiObjectModel, Button>(m, b));
-                }
-            } else if (selectedIndex > highestSelectedIndex)
-            {
-                selectedObjects.Clear();
-                for(var i = highestSelectedIndex; i <= selectedIndex; i++)
-                {
-                    var m = templateService.GetCollection(dropDown.value).Values[i];
-                    var b = buttons[i];
-                    selectedObjects.Add(new KeyValuePair<AiObjectModel, Button>(m, b));
-                }
+                DeleteSelectedElements();
+                evt.StopPropagation();
             }
+        });
+
+        listView.AddManipulator(new ContextualMenuManipulator(evt =>
+        {
+            var hasSelection = selectedObjects.Count > 0;
+            var status = hasSelection ? DropdownMenuAction.Status.Normal : DropdownMenuAction.Status.Disabled;
+            var position = evt.mousePosition;
+            evt.menu.AppendAction("+ Add element", _ =>
+                SearchableDropdown.Show(position, 280f, addElementChoices, null, picked => AddAiObject(picked)));
+            evt.menu.AppendSeparator();
+            evt.menu.AppendAction("Copy", _ => CopySelectedElements(), status);
+            evt.menu.AppendAction("Delete", _ => DeleteSelectedElements(), status);
+            evt.menu.AppendSeparator();
+            evt.menu.AppendAction("Sort by name", _ =>
+            {
+                var type = MainWindowService.Instance.GetTypeFromString(dropDown.value);
+                var collection = templateService.GetCollection(type) as ReactiveListNameSafe<AiObjectModel>;
+                collection?.Sort();
+            });
+        }));
+    }
+
+    private void ShowModel(AiObjectModel model)
+    {
+        SelectedModel = model;
+        if (currentMainWindowViewModel != null)
+        {
+            currentMainWindowViewModel.style.display = DisplayStyle.None;
+        }
+
+        if (componentsByModels.ContainsKey(model))
+        {
+            DebugService.Log("Updating Existing MVC", this);
+            currentMainWindowViewModel = componentsByModels[model];
+            currentMainWindowViewModel.UpdateUi(model);
         }
         else
         {
-            selectedObjects.Clear();
-            selectedObjects.Add(new KeyValuePair<AiObjectModel, Button>(model,button));
+            DebugService.Log("Updating new MVC", this);
+            var mvc = MainWindowService.Instance.GetAiObjectComponent(model);
+            componentsByModels.Add(model, mvc);
+            mvc.UpdateUi(model);
+            rightPanel.Add(mvc);
+            currentMainWindowViewModel = mvc;
         }
-
-        SelectedModel = model;
-        ModelSelected(model);
-
-        foreach (var b in buttons)
-        {
-            b.style.color = Color.white;
-        }
-
-        foreach(var pair in selectedObjects)
-        {
-            pair.Value.style.color = Color.gray;
-        }
+        currentMainWindowViewModel.style.display = DisplayStyle.Flex;
     }
-    private int selectionCounter;
 
+    // Select an element in the list (used after adding / copying).
     private void ModelSelected(AiObjectModel model)
     {
-        if (model == SelectedModel)
+        var index = listModels.IndexOf(model);
+        if (index >= 0)
         {
-            selectionCounter++;
-        } else
-        {
-            selectionCounter = 1;
-            SelectedModel = model;
+            listView.SetSelection(index);
+            listView.ScrollToItem(index);
         }
-
-        if (selectionCounter > 1)
+        else
         {
-            if (currentMainWindowViewModel != null)
-            {
-                currentMainWindowViewModel.style.display = DisplayStyle.None;
-            }
-            if (componentsByModels.ContainsKey(model))
-            {
-                DebugService.Log("Updating Existing MVC", this);
-                currentMainWindowViewModel = componentsByModels[model];
-                currentMainWindowViewModel.UpdateUi(model);
-                currentMainWindowViewModel.style.display = DisplayStyle.Flex;
-            } else
-            {
-                DebugService.Log("Updating new MVC", this);
-                var sw = new System.Diagnostics.Stopwatch();
-                sw.Start();
-                var mvc = MainWindowService.Instance.GetAiObjectComponent(model);
-                TimerService.Instance.LogCall(sw.ElapsedMilliseconds, "TMP Rent");
-                sw.Restart();
-                componentsByModels.Add(model, mvc);
-                TimerService.Instance.LogCall(sw.ElapsedMilliseconds, "TMP componentsByModels.Add");
-                sw.Restart();
-                mvc.UpdateUi(model);
-                TimerService.Instance.LogCall(sw.ElapsedMilliseconds, "TMP UpdateUi");
-                sw.Restart();
-                rightPanel.Add(mvc);
-                TimerService.Instance.LogCall(sw.ElapsedMilliseconds, "TMP rightPanel.Add");
-                sw.Restart();
-
-                currentMainWindowViewModel = mvc;
-                currentMainWindowViewModel.style.display = DisplayStyle.Flex;
-            }
-            selectionCounter = 0;
+            ShowModel(model);
         }
     }
 

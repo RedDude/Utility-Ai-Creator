@@ -1,0 +1,108 @@
+/* Shared look for UAI editor windows. Colours are per object type so a Bucket, Decision, etc. are told apart at a glance. */
+
+.uai-type-badge {
+    padding: 1px 7px;
+    margin: 0 6px 0 0;
+    border-radius: 8px;
+    font-size: 10px;
+    -unity-font-style: bold;
+    -unity-text-align: middle-center;
+    color: rgb(255, 255, 255);
+    background-color: rgb(110, 110, 110);
+    flex-shrink: 0;
+}
+
+.uai-type-badge.uai-type--ai { background-color: rgb(140, 90, 190); }
+.uai-type-badge.uai-type--bucket { background-color: rgb(50, 118, 190); }
+.uai-type-badge.uai-type--decision { background-color: rgb(46, 140, 90); }
+.uai-type-badge.uai-type--consideration { background-color: rgb(196, 120, 30); }
+.uai-type-badge.uai-type--action { background-color: rgb(30, 135, 150); }
+.uai-type-badge.uai-type--curve { background-color: rgb(170, 80, 120); }
+
+.uai-type-bar {
+    border-left-width: 4px;
+    border-left-color: rgb(110, 110, 110);
+}
+
+.uai-type-bar.uai-type--ai { border-left-color: rgb(140, 90, 190); }
+.uai-type-bar.uai-type--bucket { border-left-color: rgb(50, 118, 190); }
+.uai-type-bar.uai-type--decision { border-left-color: rgb(46, 140, 90); }
+.uai-type-bar.uai-type--consideration { border-left-color: rgb(196, 120, 30); }
+.uai-type-bar.uai-type--action { border-left-color: rgb(30, 135, 150); }
+.uai-type-bar.uai-type--curve { border-left-color: rgb(170, 80, 120); }
+
+/* Tabs: a flat strip with an underline on the open tab, instead of a row of buttons. */
+.uai-tab-strip {
+    flex-direction: row;
+    justify-content: flex-start;
+    border-bottom-width: 1px;
+    border-bottom-color: rgba(128, 128, 128, 0.55);
+    margin-bottom: 6px;
+}
+
+.uai-tab {
+    flex-grow: 0;
+    margin: 0 2px 0 0;
+    padding: 5px 14px;
+    background-color: rgba(0, 0, 0, 0);
+    border-width: 0;
+    border-bottom-width: 3px;
+    border-bottom-color: rgba(0, 0, 0, 0);
+    border-radius: 3px 3px 0 0;
+    -unity-font-style: normal;
+}
+
+.uai-tab:hover {
+    background-color: rgba(128, 128, 128, 0.22);
+}
+
+.uai-tab--selected,
+.uai-tab--selected:hover {
+    background-color: rgba(58, 121, 187, 0.20);
+    border-bottom-color: rgb(58, 121, 187);
+    -unity-font-style: bold;
+}
+
+.uai-tab-actions {
+    flex-grow: 1;
+    flex-direction: row;
+    justify-content: flex-end;
+    align-items: center;
+}
+
+/* Settings form: one setting per row, labels in a fixed column. */
+.uai-form {
+    flex-direction: column;
+    align-items: stretch;
+    max-width: 640px;
+    padding: 4px 0;
+}
+
+.uai-form > .uai-form-row {
+    width: auto;
+    margin: 0;
+    padding: 6px 0;
+    align-items: stretch;
+    border-bottom-width: 1px;
+    border-bottom-color: rgba(128, 128, 128, 0.3);
+}
+
+.uai-form-row .unity-base-field__label {
+    min-width: 150px;
+    width: 150px;
+}
+
+/* Tabs take the colour of the objects they hold. */
+.uai-tab.uai-type--ai { border-bottom-color: rgba(140, 90, 190, 0.45); }
+.uai-tab.uai-type--bucket { border-bottom-color: rgba(50, 118, 190, 0.45); }
+.uai-tab.uai-type--decision { border-bottom-color: rgba(46, 140, 90, 0.45); }
+.uai-tab.uai-type--consideration { border-bottom-color: rgba(196, 120, 30, 0.45); }
+.uai-tab.uai-type--action { border-bottom-color: rgba(30, 135, 150, 0.45); }
+.uai-tab.uai-type--curve { border-bottom-color: rgba(170, 80, 120, 0.45); }
+
+.uai-tab--selected.uai-type--ai, .uai-tab--selected.uai-type--ai:hover { border-bottom-color: rgb(140, 90, 190); background-color: rgba(140, 90, 190, 0.22); }
+.uai-tab--selected.uai-type--bucket, .uai-tab--selected.uai-type--bucket:hover { border-bottom-color: rgb(50, 118, 190); background-color: rgba(50, 118, 190, 0.22); }
+.uai-tab--selected.uai-type--decision, .uai-tab--selected.uai-type--decision:hover { border-bottom-color: rgb(46, 140, 90); background-color: rgba(46, 140, 90, 0.22); }
+.uai-tab--selected.uai-type--consideration, .uai-tab--selected.uai-type--consideration:hover { border-bottom-color: rgb(196, 120, 30); background-color: rgba(196, 120, 30, 0.22); }
+.uai-tab--selected.uai-type--action, .uai-tab--selected.uai-type--action:hover { border-bottom-color: rgb(30, 135, 150); background-color: rgba(30, 135, 150, 0.22); }
+.uai-tab--selected.uai-type--curve, .uai-tab--selected.uai-type--curve:hover { border-bottom-color: rgb(170, 80, 120); background-color: rgba(170, 80, 120, 0.22); }

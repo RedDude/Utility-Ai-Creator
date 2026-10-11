@@ -114,6 +114,22 @@ public class ResponseCurve: AiObjectModel
         onFunctionsChanged.OnNext(true);
     }
 
+    /// <summary>
+    /// Moves a function to another slot. The segment positions stay where they are, so the function now covers
+    /// the interval of its new slot.
+    /// </summary>
+    public void MoveResponseFunction(int fromIndex, int toIndex)
+    {
+        var count = ResponseFunctions.Count;
+        if (fromIndex == toIndex || fromIndex < 0 || toIndex < 0 || fromIndex >= count || toIndex >= count) return;
+
+        var function = ResponseFunctions[fromIndex];
+        ResponseFunctions.RemoveAt(fromIndex);
+        ResponseFunctions.Insert(toIndex, function);
+        UpdateResponseFunctionIndexes();
+        onFunctionsChanged.OnNext(true);
+    }
+
     public void RemoveResponseFunction(ResponseFunction responseFunction)
     {
         DebugService.Log("TT! Removing RF: " + responseFunction.Guid, this);
@@ -148,6 +164,42 @@ public class ResponseCurve: AiObjectModel
         UpdateResponseFunctionIndexes();
     }
 
+    /// <summary>
+    /// Puts back the functions, segments and inversion of a snapshot (a clone taken earlier), undoing edits made
+    /// since. The snapshot hands over its functions and segments and must not be used afterwards.
+    /// </summary>
+    internal void RestoreFromSnapshot(ResponseCurve snapshot)
+    {
+        foreach (var disposable in segmentDisposables.Values) disposable.Dispose();
+        segmentDisposables.Clear();
+        foreach (var disposable in responseFunctionDisposables.Values) disposable.Dispose();
+        responseFunctionDisposables.Clear();
+        foreach (var disposable in snapshot.segmentDisposables.Values) disposable.Dispose();
+        snapshot.segmentDisposables.Clear();
+        foreach (var disposable in snapshot.responseFunctionDisposables.Values) disposable.Dispose();
+        snapshot.responseFunctionDisposables.Clear();
+
+        ResponseFunctions.Clear();
+        Segments.Clear();
+        foreach (var segment in snapshot.Segments)
+        {
+            AddSegment(segment);
+        }
+        foreach (var function in snapshot.ResponseFunctions)
+        {
+            ResponseFunctions.Add(function);
+            responseFunctionDisposables.Add(function,
+                function.OnParametersChanged.Subscribe(_ => onCurveValueChanged.OnNext(true)));
+        }
+        snapshot.Segments.Clear();
+        snapshot.ResponseFunctions.Clear();
+
+        UpdateResponseFunctionIndexes();
+        isInversed = snapshot.isInversed;
+        onFunctionsChanged.OnNext(true);
+        onCurveValueChanged.OnNext(true);
+    }
+
     #endregion
 
     #region Segments
@@ -172,6 +224,20 @@ public class ResponseCurve: AiObjectModel
             Segments[index].Value = value;
         }
         // onCurveValueChanged.OnNext(true);
+    }
+
+    /// <summary>Drags a segment boundary to x, keeping it between its neighbours (or the X range ends).</summary>
+    public void MoveSegment(int index, float x)
+    {
+        if (index < 0 || index >= Segments.Count) return;
+
+        var gap = (MaxX - MinX) * 0.001f;
+        var lower = index > 0 ? Convert.ToSingle(Segments[index - 1].Value) : MinX;
+        var upper = index < Segments.Count - 1 ? Convert.ToSingle(Segments[index + 1].Value) : MaxX;
+        var clamped = Mathf.Clamp(x, lower + gap, upper - gap);
+        if (Mathf.Approximately(clamped, Convert.ToSingle(Segments[index].Value))) return;
+
+        Segments[index].Value = clamped;
     }
 
     private void RemoveSegment(ParamFloat segment)

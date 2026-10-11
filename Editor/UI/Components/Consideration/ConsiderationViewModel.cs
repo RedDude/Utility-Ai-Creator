@@ -27,7 +27,6 @@ internal class ConsiderationViewModel : AiObjectViewModel
     private FloatFieldMinMax minField;
     private FloatFieldMinMax maxField;
 
-    private readonly TabViewViewModel tabView;
     private Button responseCurveTab;
     private Button parametersTab;
     private readonly ResponseCurveMinimizedViewModel responseCurveMinimized;
@@ -43,9 +42,16 @@ internal class ConsiderationViewModel : AiObjectViewModel
         parametersContainer.Add(performanceTag);
         Body.Clear();
         Body.Add(root);
+        root.style.marginTop = 0;
+        root.style.paddingTop = 0;
+        Body.style.marginTop = 0;
+        Body.style.paddingTop = 0;
 
-        tabView = new TabViewViewModel();
-        root.Add(tabView);
+        // Parameters and the response curve share one row instead of living in separate tabs.
+        var sideBySide = new VisualElement();
+        sideBySide.style.flexDirection = FlexDirection.Row;
+        sideBySide.style.alignItems = Align.FlexStart;
+        root.Add(sideBySide);
 
         responseCurveMinimized = new ResponseCurveMinimizedViewModel()
         {
@@ -60,8 +66,8 @@ internal class ConsiderationViewModel : AiObjectViewModel
             .AddTo(disposables);
 
         //curveContainer.Add(responseCurveLCComponent);
-        tabView.AddTabGroup("Parameters", parametersContainer);
-        tabView.AddTabGroup("Response Curve", responseCurveMinimized);
+        sideBySide.Add(CreateSection(null, parametersContainer, 1f));
+        sideBySide.Add(CreateSection(null, responseCurveMinimized, 1f));
 
         minParamComp = new ParameterComponent();
         maxParamComp = new ParameterComponent();
@@ -113,6 +119,27 @@ internal class ConsiderationViewModel : AiObjectViewModel
 
         //responseCurveLCComponent.UpdateUi(considerationModel.CurrentResponseCurve);
         TimerService.Instance.LogCall(sw.ElapsedMilliseconds, "UpdateInternal Consideration");
+    }
+
+    private static VisualElement CreateSection(string title, VisualElement content, float grow)
+    {
+        var section = new VisualElement();
+        section.style.flexGrow = grow;
+        section.style.flexBasis = 0;
+        section.style.minWidth = 220;
+        section.style.marginRight = 8;
+
+        // An empty heading label still reserved a line of height; only add it when there is a title.
+        if (!string.IsNullOrEmpty(title))
+        {
+            var heading = new Label(title);
+            heading.style.unityFontStyleAndWeight = FontStyle.Bold;
+            heading.style.marginBottom = 4;
+            heading.style.opacity = 0.8f;
+            section.Add(heading);
+        }
+        section.Add(content);
+        return section;
     }
 
     private void SetParameters()

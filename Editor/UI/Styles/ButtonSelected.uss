@@ -1,3 +1,8 @@
+/* Selected tab / list button. Uses Unity's theme variables so it reads on both the dark and light editor skin. */
 Button {
-	color: aqua;
+	background-color: var(--unity-colors-highlight-background);
+	color: var(--unity-colors-highlight-text);
+	border-left-width: 3px;
+	border-left-color: var(--unity-colors-highlight-text);
+	-unity-font-style: bold;
 }

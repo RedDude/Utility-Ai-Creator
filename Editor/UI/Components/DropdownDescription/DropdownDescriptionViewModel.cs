@@ -21,6 +21,7 @@ public class DropdownDescriptionViewModel<T> : VisualElement where T : IIdentifi
         root = AssetService.GetTemplateContainer(GetType().FullName);
         Add(root);
         dropDown = root.Q<DropdownField>("Elements-DropdownField");
+        SearchableDropdown.Attach(dropDown);
         dropDown.RegisterCallback<ChangeEvent<string>>(evt => ValueChanged(evt.newValue));
 
         description = root.Q<Label>("DescriptionText-Label");

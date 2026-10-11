@@ -24,21 +24,25 @@ internal class AgentViewModel: RightPanelComponent<IAgent>
         var body = root.Q<VisualElement>("Body");
         agentName = root.Q<Label>("AgentName");
         aiDropdown = root.Q<DropdownField>("Ai-Dropdown");
+        SearchableDropdown.Attach(aiDropdown);
         var footer = root.Q<VisualElement>("Footer");
         aiViewModel = new AiViewModel();
         body.Add(aiViewModel);
 
-        aiDropdown.label = "AIs";
+        aiDropdown.label = "AI";
+        aiDropdown.style.minWidth = 220;
         var tickAgent = new Button();
-        tickAgent.text = "TEST-Tick-Agent";
+        tickAgent.text = "Tick agent";
+        tickAgent.tooltip = "Run this agent's AI once, right now";
         tickAgent.RegisterCallback<MouseUpEvent>(evt =>
         {
-            UaiTicker.Instance.TickAgent(agent);
+            if (agent != null) UaiTicker.Instance.TickAgent(agent);
         });
         footer.Add(tickAgent);
 
         var tickAllButton = new Button();
-        tickAllButton.text = "TEST-Tick-All";
+        tickAllButton.text = "Tick all agents";
+        tickAllButton.tooltip = "Run every agent's AI once, right now";
         tickAllButton.RegisterCallback<MouseUpEvent>(evt =>
         {
             UaiTicker.Instance.TickAis();
@@ -46,9 +50,11 @@ internal class AgentViewModel: RightPanelComponent<IAgent>
         footer.Add(tickAllButton);
 
         var applyToAllButton = new Button();
-        applyToAllButton.text = "Apply to all";
+        applyToAllButton.text = "Apply AI to all";
+        applyToAllButton.tooltip = "Give every agent of this type a copy of this agent's AI";
         applyToAllButton.RegisterCallback<MouseUpEvent>(evt =>
         {
+            if (agent == null) return;
             AgentManager.Instance.GetAgentsByIdentifier(agent.TypeIdentifier).Values
                 .ForEach(SetAgentAiAsCurrentAgentsAi);
 
@@ -64,8 +70,12 @@ internal class AgentViewModel: RightPanelComponent<IAgent>
 
         aiDropdown.RegisterCallback<ChangeEvent<string>>(evt =>
         {
+            // The dropdown also fires while it is being filled, before any agent is selected.
+            if (agent?.Uai == null || string.IsNullOrEmpty(evt.newValue)) return;
             if (agent.Uai.Name == evt.newValue) return;
-            agent.Uai = PlayAbleAiService.Instance.GetAiByName(evt.newValue);
+            var newAi = PlayAbleAiService.Instance.GetAiByName(evt.newValue);
+            if (newAi == null) return;
+            agent.Uai = newAi;
             UpdateAiComponent();
         });
     }
@@ -110,6 +120,7 @@ internal class AgentViewModel: RightPanelComponent<IAgent>
 
     internal void UpdateAiComponent()
     {
+        if (agent?.Uai == null) return;
         aiViewModel.UpdateUi(agent.Uai);
     }
 

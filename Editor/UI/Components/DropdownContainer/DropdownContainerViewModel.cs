@@ -24,6 +24,7 @@ internal class DropdownContainerViewModel<T> : VisualElement where T : UtilityCo
         Add(root);
 
         dropdown = root.Q<DropdownField>("Dropdown");
+        SearchableDropdown.Attach(dropdown);
         elementContainer = root.Q<VisualElement>("ElementContainer");
         ucsViewModel = new UcsViewModel();
         elementContainer.Add(ucsViewModel);

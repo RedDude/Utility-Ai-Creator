@@ -8,6 +8,7 @@ using System.Threading.Tasks;
 internal static class TypeToName
 {
     internal const string RF_Bool = "Bool";
+    internal const string RF_Curve = "Curve";
     internal const string RF_Exponential = "Exponential";
     internal const string RF_FixedValue = "Fixed Value";
     internal const string RF_InverseLogistic = "InverseLogitic";
@@ -20,6 +21,8 @@ internal static class TypeToName
     {
         if (t == typeof(BoolFunction))
             return RF_Bool;
+        else if (t == typeof(CurveFunction))
+            return RF_Curve;
         else if (t == typeof(ExponentialFunction))
             return RF_Exponential;
         else if (t == typeof(FixedValueFunction))

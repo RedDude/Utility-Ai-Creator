@@ -1,7 +1,9 @@
 ﻿using System;
 using System.Collections.Generic;
 using UniRx;
+using UnityEditor;
 using UnityEditor.UIElements;
+using UnityEngine;
 using UnityEngine.UIElements;
     public class ResponseCurveMinimizedViewModel : VisualElement
     {
@@ -10,9 +12,9 @@ using UnityEngine.UIElements;
 
         private readonly DropdownField curveDropDown;
         private readonly LineChartButton responseCurveButton;
-        private readonly ToolbarToggle inverseToggle;
-        private ResponseCurveWindow responseCurveWindow;
-        
+        private readonly Button inverseButton;
+        private ResponseCurveEditorOverlay curveEditor;
+
         public IObservable<ResponseCurve> OnResponseCurveChanged => onResponseCurveChanged;
         private readonly Subject<ResponseCurve> onResponseCurveChanged = new Subject<ResponseCurve>();
 
@@ -28,6 +30,7 @@ using UnityEngine.UIElements;
 
             // Header
             curveDropDown = root.Q<DropdownField>("ResponseCurve-DropDown");
+            SearchableDropdown.Attach(curveDropDown);
             TemplateService.Instance.ResponseCurves.OnValueChanged
                 .Subscribe(InitCurveDropDownChoices)
                 .AddTo(disposable);
@@ -41,28 +44,45 @@ using UnityEngine.UIElements;
                 name = "ResponseCurveButton"
             };
 
-            UpdateResponseCurveWindow();
-            responseCurveButton.RegisterCallback<MouseUpEvent>(_ =>
+            responseCurveButton.RegisterCallback<MouseUpEvent>(evt =>
             {
-                if (responseCurveWindow == null)
-                {
-                    responseCurveWindow = WindowOpener.GetNewResponseCurveWindow();
-                }
-                UpdateResponseCurveWindow();
+                if (evt.button == 0) OpenCurveEditor();
             });
 
             var body = root.Q<VisualElement>("Body");
             body.Add(responseCurveButton);
         
             // Footer
-            var saveTemplateButton = root.Q<Button>("SaveTemplateButton");
-            saveTemplateButton.RegisterCallback<MouseUpEvent>(SaveTemplate);
+            // Save-as-template and reverse sit to the right of the curve picker; both are also in the curve's context menu.
+            var header = root.Q<VisualElement>("Header");
+            // The picker shrinks (and truncates its text) so save / reverse always fit above the curve.
+            curveDropDown.style.minWidth = 0;
+            curveDropDown.style.flexShrink = 1;
+            curveDropDown.style.flexBasis = 0;
+            curveDropDown.style.marginRight = 0;
+            curveDropDown.labelElement.style.display = DisplayStyle.None;
+            curveDropDown.Q(className: "unity-base-popup-field__input").style.minWidth = 0;
+            header.style.overflow = Overflow.Hidden;
+            var saveTemplateButton = IconButtonService.CreateSave("Save this curve as a template");
+            saveTemplateButton.RegisterCallback<ClickEvent>(_ => SaveTemplate());
+            header.Add(saveTemplateButton);
 
-            inverseToggle = root.Q<ToolbarToggle>("Inverse-ToolbarToggle");
-            inverseToggle.RegisterCallback<ChangeEvent<bool>>(evt =>
+            inverseButton = new Button { text = "Reverse", tooltip = "Flip the curve (inverse)" };
+            inverseButton.style.flexShrink = 0;
+            inverseButton.style.marginLeft = 2;
+            inverseButton.style.marginRight = 0;
+            inverseButton.RegisterCallback<ClickEvent>(_ => ToggleReverse());
+            header.Add(inverseButton);
+
+            responseCurveButton.AddManipulator(new ContextualMenuManipulator(evt =>
             {
-                responseCurve.IsInversed = evt.newValue;
-            });
+                evt.menu.AppendAction("Save as template", _ => SaveTemplate());
+                evt.menu.AppendAction("Reverse", _ => ToggleReverse(),
+                    _ => responseCurve != null && responseCurve.IsInversed
+                        ? DropdownMenuAction.Status.Checked
+                        : DropdownMenuAction.Status.Normal);
+                evt.menu.AppendAction("Open curve editor", _ => OpenCurveEditor());
+            }));
         }
 
         public void UpdateUi(ResponseCurve newResponseCurve, string newOwnerName)
@@ -76,13 +96,10 @@ using UnityEngine.UIElements;
             responseCurve.OnFunctionsChanged
                 .Subscribe(ReDrawCurve)
                 .AddTo(rcDisposable);
-            inverseToggle.SetValueWithoutNotify(responseCurve.IsInversed);
+            ShowReversed(responseCurve.IsInversed);
             curveDropDown.SetValueWithoutNotify(responseCurve.Name);
 
-            if (responseCurveWindow != null)
-            {
-                responseCurveWindow.UpdateUi(responseCurve);
-            }
+            UpdateCurveEditor();
             responseCurveButton.UpdateUi(responseCurve);
         }
 
@@ -91,8 +108,50 @@ using UnityEngine.UIElements;
             responseCurveButton.UpdateUi(responseCurve);
         }
 
-        private async void SaveTemplate(MouseUpEvent evt)
+        private void OpenCurveEditor()
         {
+            if (responseCurve == null || (curveEditor != null && curveEditor.IsOpen)) return;
+
+            // The editor takes over the window this view lives in until Back is pressed.
+            curveEditor = new ResponseCurveEditorOverlay();
+            rcWindowDisposable.Clear();
+            curveEditor.Editor.OnResponseCurveChanged
+                .Subscribe(curve => onResponseCurveChanged.OnNext(curve))
+                .AddTo(rcWindowDisposable);
+
+            // Edits apply live, so "Back without saving" puts this snapshot of the curve back.
+            var original = responseCurve;
+            var snapshot = (ResponseCurve)original.Clone();
+            curveEditor.OnClosed
+                .Subscribe(discardChanges =>
+                {
+                    rcWindowDisposable.Clear();
+                    if (!discardChanges) return;
+
+                    original.RestoreFromSnapshot(snapshot);
+                    // A different curve may have been picked inside the editor: go back to the original one.
+                    if (responseCurve != original) onResponseCurveChanged.OnNext(original);
+                });
+            curveEditor.Open(this);
+            UpdateCurveEditor();
+        }
+
+        private void ToggleReverse()
+        {
+            if (responseCurve == null) return;
+            responseCurve.IsInversed = !responseCurve.IsInversed;
+            ShowReversed(responseCurve.IsInversed);
+        }
+
+        // The button reads as "on" while the curve is reversed.
+        private void ShowReversed(bool reversed)
+        {
+            IconButtonService.ShowToggled(inverseButton, reversed);
+        }
+
+        private async void SaveTemplate()
+        {
+            if (responseCurve == null) return;
             var clone = await responseCurve.CloneAsync();
             TemplateService.Instance.Add(clone);
             curveDropDown.SetValueWithoutNotify(responseCurve.Name);
@@ -117,18 +176,11 @@ using UnityEngine.UIElements;
             curveDropDown.SetValueWithoutNotify(null);
         }
 
-        private void UpdateResponseCurveWindow()
+        // Keeps the open editor (if any) on the current curve.
+        private void UpdateCurveEditor()
         {
-            if (responseCurveWindow == null) return;
-            rcWindowDisposable.Clear();
-            responseCurveWindow.ResponseCurveViewModel.OnResponseCurveChanged
-                .Subscribe(curve => onResponseCurveChanged.OnNext(curve))
-                .AddTo(rcWindowDisposable);
-            
-            if (responseCurve != null)
-            {
-                responseCurveWindow.UpdateUi(responseCurve,true,ownerName);
-            }
+            if (curveEditor == null || !curveEditor.IsOpen || responseCurve == null) return;
+            curveEditor.Editor.UpdateUi(responseCurve, true, ownerName);
         }
 
         ~ResponseCurveMinimizedViewModel()

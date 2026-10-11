@@ -65,6 +65,13 @@ public abstract class AiObjectModel: PersistSingleFile, IInitializeAble
         return GetType().ToString();
     }
 
+    /// <summary>Recomputes the info / warning text; editors call it so a stale warning is never shown.</summary>
+    public void RefreshInfo()
+    {
+        if (ContextAddress == null) return;
+        UpdateInfo();
+    }
+
     protected virtual void UpdateInfo()
     {
         SetParent(ContextAddress.Parent,ContextAddress.Index);

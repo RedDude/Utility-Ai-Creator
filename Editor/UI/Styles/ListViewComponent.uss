@@ -1,7 +1,3 @@
-#Left {
-    min-width: 80px;
-}
-
 #TypeHeader{
     display: flex;
     flex-direction: row;
@@ -10,7 +6,7 @@
 }
 
 #Center {
-    margin: 8px;
+    margin: 0 0 4px 0;
     padding: 3px;
     /*max-width: 500px;*/
     border-radius: 0;
@@ -23,4 +19,48 @@
     border-width: 1px;
     border-color: rgb(100, 100, 100);
 }
-    
+
+/* Drag handle: three bars, drawn with elements so it needs no font glyph. */
+#DragHandle {
+    width: 18px;
+    height: 18px;
+    margin-right: 2px;
+    padding: 4px 3px;
+    justify-content: space-between;
+    -unity-background-image-tint-color: rgb(150, 150, 150);
+}
+
+#DragHandle > .drag-bar {
+    height: 2px;
+    background-color: rgba(150, 150, 150, 0.9);
+}
+
+#DragHandle:hover > .drag-bar {
+    background-color: rgb(58, 121, 187);
+}
+
+#Remove-Button {
+    margin: 0;
+    min-width: 22px;
+}
+
+.list-item--dragging {
+    opacity: 0.4;
+}
+
+#DragHandle:active > .drag-bar {
+    background-color: rgb(58, 121, 187);
+}
+
+/* Insertion line shown where the dragged item will land. */
+.list-item--drop-before {
+    border-top-width: 4px;
+    border-top-color: rgb(58, 121, 187);
+    padding-top: 0;
+}
+
+.list-item--drop-after {
+    border-bottom-width: 4px;
+    border-bottom-color: rgb(58, 121, 187);
+    padding-bottom: 0;
+}
