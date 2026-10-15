@@ -23,29 +23,37 @@ public class DseAllBuckets: DecisionScoreEvaluator
             bucket.GetUtility(context);
         }
 
-        var sorted = InsertionSort.SortHighestFirst(new List<Bucket>(buckets));
-
+        // Buckets are compared in the Uai's list order, and every decision of every bucket is scored: a decision may score above
+        // its bucket's weight (a Base Weight above 1), so no bucket is skipped. Utilities are compared rounded to 3 decimals, so
+        // an equal score at 3 decimals goes to the first in (bucket list, decision list) order instead of to float noise.
         Decision bestDecision = null;
+        Bucket bestBucket = null;
         var bestUtility = float.MinValue;
-        foreach (var bucket in sorted)
+        foreach (var bucket in buckets)
         {
-            // If weight is to low, the decisions can't score high enough
-            if (bucket.Weight.Value < bestUtility) continue;
+            context.CurrentEvaluatedBucket = bucket;
             foreach (var decision in bucket.Decisions.Values)
             {
-                var utility = decision.GetUtility(context);
+                context.CurrentEvaluatedDecision = decision;
+                var utility = Quantize(decision.GetUtility(context));
                 if (utility > bestUtility)
                 {
                     bestUtility = utility;
                     bestDecision = decision;
+                    bestBucket = bucket;
                 }
             }
         }
 
-        return bestDecision == null ? 
-            new List<AgentAction>() : 
-            bestDecision.AgentActions.Values;
+        if (bestDecision == null) return new List<AgentAction>();
+
+        SetContextValuesBucket(context, bestBucket);
+        SetContextValuesDecision(context, bestDecision);
+        return bestDecision.AgentActions.Values;
     }
+
+    private static float Quantize(float utility) =>
+        (float)System.Math.Round((double)utility, 3, System.MidpointRounding.AwayFromZero);
 
     public override List<AgentAction> NextActions(List<Decision> decisions, Uai uai)
     {
