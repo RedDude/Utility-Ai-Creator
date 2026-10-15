@@ -82,7 +82,8 @@ public class PlayAbleAiService: PersistSingleFile
             // DebugService.LogWarning("No playable Ais. Have you marked an ai PlayAble", this);
             // return null;
         }
-        var ai = PlayAbleAIs.FirstOrDefault(ai => ai.Name == name) ?? PlayAbleAIs.FirstOrDefault();
+        // Exact name only: an unknown name must not quietly run another Uai
+        var ai = PlayAbleAIs.FirstOrDefault(ai => ai.Name == name);
         if (ai == null)
         {
             DebugService.LogWarning("No playable Ai found (requested: " + name + "). Mark an Ai as playable in the UAI Creator Template Manager.", this);
