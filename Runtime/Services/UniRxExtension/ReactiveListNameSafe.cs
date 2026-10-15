@@ -30,13 +30,15 @@ namespace UniRxExtension
         {
             if (string.IsNullOrEmpty(element.Name)) return;
 
-            var numberOfIdenticalNames = Values
-                .Count(e => e != null && !string.IsNullOrEmpty(e.Name) && e.Name.Contains(element.Name));
+            // Only an equal name clashes ("Ask Q" next to "Ask Quentin" is fine); a clash takes the smallest free "(n)"
+            var taken = new HashSet<string>(Values
+                .Where(e => e != null && !ReferenceEquals(e, element) && !string.IsNullOrEmpty(e.Name))
+                .Select(e => e.Name), StringComparer.Ordinal);
+            if (!taken.Contains(element.Name)) return;
 
-            if (numberOfIdenticalNames > 0)
-            {
-                element.Name += "(" + numberOfIdenticalNames + ")";
-            }
+            var n = 1;
+            while (taken.Contains(element.Name + "(" + n + ")")) n++;
+            element.Name += "(" + n + ")";
         }
         
         public void Sort()
