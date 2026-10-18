@@ -28,7 +28,7 @@ internal class DecisionViewModel : AiObjectViewModel
         considerationCollections = new CollectionViewModel<Consideration>(TemplateService.Instance.Considerations, "Consideration", "Considerations");
         agentActionCollection = new CollectionViewModel<AgentAction>(TemplateService.Instance.AgentActions, "Action", "Actions");
 
-        tabView = new TabViewViewModel();
+        tabView = new TabViewViewModel(sideBySide: true, layoutKey: "Decision");
         root.Add(tabView);
         considerationsTab = tabView.AddTabGroup("Considerations", considerationCollections);
         actionsTab = tabView.AddTabGroup("Actions", agentActionCollection);
@@ -72,7 +72,7 @@ internal class DecisionViewModel : AiObjectViewModel
         foreach (var parameter in decision.Parameters)
         {
             var pC = new ParameterComponent();
-            pC.UpdateUi(parameter);
+            pC.UpdateUi(parameter, decision);
             parametersContainer.Add(pC);
         }
     }

@@ -178,7 +178,7 @@ internal class ConsiderationViewModel : AiObjectViewModel
         foreach(var parameter in considerationModel.Parameters)
         {
             var pC = new ParameterComponent();
-            pC.UpdateUi(parameter);
+            pC.UpdateUi(parameter, considerationModel);
             parametersContainer.Add(pC);
         }
     }

@@ -31,7 +31,7 @@ internal class AgentActionViewModel : AiObjectViewModel
         foreach (var parameter in agentAction.Parameters)
         {
             var pC = new ParameterComponent();
-            pC.UpdateUi(parameter);
+            pC.UpdateUi(parameter, agentAction);
             parametersContainer.Add(pC);
         }
     }

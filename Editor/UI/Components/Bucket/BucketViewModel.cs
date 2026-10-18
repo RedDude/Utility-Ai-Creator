@@ -23,12 +23,13 @@ internal class BucketViewModel : AiObjectViewModel
         root = AssetService.GetTemplateContainer(GetType().FullName);
 
         weightComponent = new ParameterComponent();
-        tabView = new TabViewViewModel();
+        tabView = new TabViewViewModel(sideBySide: true, layoutKey: "Bucket");
         considerationCollections = new CollectionViewModel<Consideration>(TemplateService.Instance.Considerations, "Consideration", "Considerations");
         decisionCollections = new CollectionViewModel<Decision>(TemplateService.Instance.Decisions, "Decision", "Decisions");
 
-        considerationsTab = tabView.AddTabGroup("Considerations", considerationCollections);
-        decisionTab = tabView.AddTabGroup("Decisions", decisionCollections);
+        // Decisions hold more (their own considerations and actions), so they start wider: 2 to 3.
+        considerationsTab = tabView.AddTabGroup("Considerations", considerationCollections, columnWeight: 2f);
+        decisionTab = tabView.AddTabGroup("Decisions", decisionCollections, columnWeight: 3f);
         root.Add(tabView);
 
         Body.Clear();

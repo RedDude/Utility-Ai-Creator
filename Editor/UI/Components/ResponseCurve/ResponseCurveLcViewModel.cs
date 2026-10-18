@@ -465,16 +465,46 @@ internal class ResponseCurveLcViewModel : VisualElement
         curveDropDown.SetValueWithoutNotify(null);
     }
 
-    private void ReDrawChart()
+    // Fixed steps alone turn a jump (a step curve, a segment boundary) into a slanted line over one step.
+    // Where two neighbours differ a lot, bisect to the exact x of the jump and keep a point on each side,
+    // so the chart draws a true vertical edge and a steep slope stays sharp.
+    private const float JumpThreshold = 0.1f;
+    private const int BisectIterations = 24;
+
+    private List<Vector2> SampleCurve()
     {
         var points = new List<Vector2>();
         var stepSize = (Max - Min) / steps;
-        for (var i = 0; i <= steps; i++)
+        var prev = new Vector2(Min, responseCurve.CalculateResponse(Min));
+        points.Add(prev);
+        for (var i = 1; i <= steps; i++)
         {
             var x = i * stepSize + Min;
-            var y = responseCurve.CalculateResponse(x);
-            points.Add(new Vector2(x, y));
+            var current = new Vector2(x, responseCurve.CalculateResponse(x));
+            if (Mathf.Abs(current.y - prev.y) > JumpThreshold)
+            {
+                var lo = prev;
+                var hi = current;
+                for (var n = 0; n < BisectIterations; n++)
+                {
+                    var midX = (lo.x + hi.x) * 0.5f;
+                    var mid = new Vector2(midX, responseCurve.CalculateResponse(midX));
+                    // The jump lies on the side whose end is farther from the middle value.
+                    if (Mathf.Abs(mid.y - lo.y) < Mathf.Abs(mid.y - hi.y)) lo = mid;
+                    else hi = mid;
+                }
+                points.Add(lo);
+                points.Add(hi);
+            }
+            points.Add(current);
+            prev = current;
         }
+        return points;
+    }
+
+    private void ReDrawChart()
+    {
+        var points = SampleCurve();
 
         IconButtonService.ShowToggled(reverseButton, responseCurve.IsInversed);
         PositionSegmentBar();

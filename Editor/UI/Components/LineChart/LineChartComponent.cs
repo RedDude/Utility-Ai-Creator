@@ -69,16 +69,17 @@ internal class LineChartComponent: IMGUIContainer
 
     public void DrawCurve()
     {
-        for (var i = 1; i < points.Count; i++)
-        {
-            var p1 = points[i - 1];
-            var p2 = points[i];
+        if (points.Count < 2) return;
 
-            var screenCoordP1 = GraphToScreenCoordinates(p1);
-            var screenCoordP2 = GraphToScreenCoordinates(p2);
-            Handles.color = Color.green;
-            Handles.DrawLine(screenCoordP1, screenCoordP2);
+        // One anti-aliased polyline (joined corners, 2px) instead of 1px aliased segments; Y is kept inside the graph.
+        var screen = new Vector3[points.Count];
+        for (var i = 0; i < points.Count; i++)
+        {
+            var p = points[i];
+            screen[i] = GraphToScreenCoordinates(p.x, Mathf.Clamp(p.y, graphMinY, graphMaxY));
         }
+        Handles.color = Color.green;
+        Handles.DrawAAPolyLine(2f, screen);
     }
 
     public LineChartComponent()

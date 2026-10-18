@@ -1,12 +1,14 @@
 <ui:UXML xmlns:ui="UnityEngine.UIElements" xmlns:uie="UnityEditor.UIElements" xsi="http://www.w3.org/2001/XMLSchema-instance" engine="UnityEngine.UIElements" editor="UnityEditor.UIElements" noNamespaceSchemaLocation="../../../../../../../../UIElementsSchema/UIElements.xsd" editor-extension-mode="True">
     <ui:VisualElement name="Container" style="flex-direction: column;">
-        <ui:VisualElement name="Header" style="flex-direction: row; flex-grow: 0; align-items: center;">
-            <ui:Label text="" display-tooltip-when-elided="true" name="Type-Label-Folded" />
-            <ui:VisualElement name="NameIdentifier" style="flex-direction: row; flex-shrink: 1;">
-                <ui:Label text="" display-tooltip-when-elided="true" name="Value-Label" style="flex-grow: 0; -unity-font-style: bold;" />
+        <ui:VisualElement name="Header" style="flex-direction: row; flex-wrap: wrap; flex-grow: 0; align-items: center;">
+            <ui:VisualElement name="TitleRow" style="flex-direction: row; flex-wrap: wrap; flex-grow: 1; flex-shrink: 1; align-items: center;">
+                <ui:Label text="" display-tooltip-when-elided="true" name="Type-Label-Folded" />
+                <ui:VisualElement name="NameIdentifier" style="flex-direction: row; flex-shrink: 1;">
+                    <ui:Label text="" display-tooltip-when-elided="true" name="Value-Label" style="flex-grow: 0; -unity-font-style: bold;" />
+                </ui:VisualElement>
+                <ui:VisualElement name="LabelContainer" style="flex-direction: row; justify-content: flex-start; margin-left: 6px;" />
+                <ui:VisualElement name="ScoreContainer" style="flex-direction: row; align-items: center; flex-shrink: 0; margin-left: 6px;" />
             </ui:VisualElement>
-            <ui:VisualElement name="LabelContainer" style="flex-direction: row; flex-grow: 1; justify-content: flex-start; margin-left: 6px;" />
-            <ui:VisualElement name="ScoreContainer" style="flex-direction: row; align-items: center; flex-shrink: 0;" />
         </ui:VisualElement>
         <ui:VisualElement name="Body" style="flex-direction: row;">
             <ui:VisualElement name="IdentifierContainer" style="flex-grow: 1;">

@@ -28,6 +28,10 @@ internal class MainWindowFoldedViewModel : VisualElement
         HeaderRow = this.Q<VisualElement>("Header"); // cached: it is moved out of this view by the list item
         typeLabel = this.Q<Label>("Type-Label-Folded");
         nameLabel = this.Q<VisualElement>("NameIdentifier").Q<Label>("Value-Label");
+        // A name wider than the row is cut with an ellipsis; it used to run underneath the scores.
+        nameLabel.style.whiteSpace = WhiteSpace.NoWrap;
+        nameLabel.style.textOverflow = TextOverflow.Ellipsis;
+        nameLabel.style.overflow = Overflow.Hidden;
         InlineRename.Attach(nameLabel, () => model?.Name, newName =>
         {
             if (model != null) model.Name = newName;
@@ -46,16 +50,23 @@ internal class MainWindowFoldedViewModel : VisualElement
         });
         scoreContainer = this.Q<VisualElement>("ScoreContainer");
         footer = this.Q<VisualElement>("Footer");
-        // Min / Max / Return value... sit in the same row as type and name, not on a second line.
-        footer.style.flexWrap = Wrap.NoWrap;
+        // Min / Max / Return value... follow the title on the same line and drop to a line below when they do not fit.
+        // The title row (see the UXML) must have no growing child: a row that grows and holds a growing child is measured
+        // as full width, so the footer never fits beside it. The scores take the spare space with an auto margin instead.
+        // Inline styles: the enclosing editor's #Footer rule (margin, 24px max height, space-between) reaches this element.
+        footer.style.flexWrap = Wrap.Wrap;
         footer.style.flexGrow = 0;
         footer.style.flexShrink = 1;
         footer.style.marginTop = 0;
         footer.style.marginBottom = 0;
         footer.style.marginLeft = 6;
-        footer.style.overflow = Overflow.Hidden;
+        footer.style.marginRight = 0;
+        footer.style.minHeight = 0;
+        footer.style.maxHeight = StyleKeyword.None;
+        footer.style.justifyContent = Justify.FlexStart;
+        footer.style.overflow = Overflow.Visible;
         var headerRow = this.Q<VisualElement>("Header");
-        headerRow.Insert(headerRow.IndexOf(this.Q<VisualElement>("ScoreContainer")), footer);
+        headerRow.Add(footer); // after the title row (type, name, labels, score), which the header wraps it away from
         var identifierContainer = this.Q<VisualElement>("IdentifierContainer");
         infoViewModel = new InfoViewModel();
         identifierContainer.Add(infoViewModel);
@@ -116,6 +127,13 @@ internal class MainWindowFoldedViewModel : VisualElement
     // Live scores sit in the title row, so they are visible without opening the item.
     private void SetScores(AiObjectModel aiObjectModel)
     {
+        // Min / Max look like Base / Score and come first, so the row reads: labels, Min, Max, Base, Score.
+        if (aiObjectModel is Consideration cons)
+        {
+            AddParamScore(cons.MinFloat);
+            AddParamScore(cons.MaxFloat);
+        }
+
         foreach (var scoreModel in aiObjectModel.ScoreModels)
         {
             // ScoreViewModel follows its model's value changes by itself.
@@ -123,6 +141,17 @@ internal class MainWindowFoldedViewModel : VisualElement
             component.style.marginRight = 8;
             scoreContainer.Add(component);
         }
+    }
+
+    private void AddParamScore(ParamFloat param)
+    {
+        var scoreModel = new ScoreModel(param.Name, Convert.ToSingle(param.Value));
+        param.OnValueChange
+            .Subscribe(_ => scoreModel.Value = Convert.ToSingle(param.Value))
+            .AddTo(disposables);
+        var component = new ScoreViewModel(scoreModel);
+        component.style.marginRight = 8;
+        scoreContainer.Add(component);
     }
 
     // The description row is hidden when there is nothing to show.
@@ -149,31 +178,7 @@ internal class MainWindowFoldedViewModel : VisualElement
     private void SetFooter()
     {
         footer.Clear();
-        if (model.GetType().IsSubclassOf(typeof(Consideration)) || model.GetType() == typeof(Consideration))
-        {
-            var cons = model as Consideration;
-            var minLabel = new Label()
-            {
-                text = cons.MinFloat.Name + ": " + cons.MinFloat.Value,
-                name = "FoldedFooterLabel"
-            };
-            footer.Add(minLabel);
-            cons.MinFloat.OnValueChange
-                .Subscribe(_ => minLabel.text = cons.MinFloat.Name + ": " + cons.MinFloat.Value)
-                .AddTo(disposables);
-
-            var maxLabel = new Label()
-            {
-                text = cons.MaxFloat.Name + ": " + cons.MaxFloat.Value,
-                name = "FoldedFooterLabel"
-            };
-            footer.Add(maxLabel);
-            cons.MaxFloat.OnValueChange
-                .Subscribe(_ => maxLabel.text = cons.MaxFloat.Name + ": " + cons.MaxFloat.Value)
-                .AddTo(disposables);
-
-        }
-
+        // Min / Max of a consideration are shown with the scores (see SetScores).
         foreach (var parameter in model.Parameters)
         {
             var labelText = parameter.Name + ": " + parameter.GetValueAsString();
@@ -191,6 +196,9 @@ internal class MainWindowFoldedViewModel : VisualElement
                 .Subscribe(_ => pLabel.text = parameter.Name + ": " + parameter.GetValueAsString())
                 .AddTo(disposables);
         }
+
+        // Nothing to show: take no space (an empty footer could still force an empty line below the title).
+        footer.style.display = footer.childCount == 0 ? DisplayStyle.None : DisplayStyle.Flex;
     }
 
     private void SetLabels()

@@ -88,9 +88,63 @@ internal class CollectionViewModel<T> : VisualElement, ITabActions where T : AiO
 
     internal void SetAllFolded(bool folded)
     {
-        if (folded) unfoldedElements.Clear();
-        else unfoldedElements.UnionWith(collection.Values);
+        foreach (var element in collection.Values) SetUnfolded(element, !folded);
         if (collection.Count > 0) UpdateCollection();
+    }
+
+    // Scroll position survives reloads. A list has no id, so it is keyed by its type and its first element.
+    private string ScrollKey => collection != null && collection.Count > 0 ? typeof(T).Name + "." + collection.Values[0].Guid : null;
+    // Rebuilding the list resets the scroller; nothing is saved until the remembered offset has been applied.
+    private bool scrollRestored;
+    private IVisualElementScheduledItem scrollSave;
+
+    private void SaveScrollSoon()
+    {
+        if (!scrollRestored) return;
+        // Debounced: EditorPrefs is the registry on Windows, too slow to write on every scroll tick.
+        scrollSave ??= elementsBody.schedule.Execute(() =>
+        {
+            var key = ScrollKey;
+            if (key != null) TemplateManagerStateService.SetScroll(key, elementsBody.scrollOffset.y);
+        });
+        scrollSave.ExecuteLater(400);
+    }
+
+    private void RestoreScroll()
+    {
+        if (scrollRestored) return;
+        var key = ScrollKey;
+        if (key == null) return;
+
+        var saved = TemplateManagerStateService.GetScroll(key);
+        if (saved <= 0f)
+        {
+            scrollRestored = true;
+            return;
+        }
+        // The content has no size until the first layout pass.
+        EventCallback<GeometryChangedEvent> apply = null;
+        apply = _ =>
+        {
+            if (elementsBody.contentContainer.layout.height <= 0f) return;
+            elementsBody.contentContainer.UnregisterCallback(apply);
+            elementsBody.scrollOffset = new Vector2(0f, saved);
+            scrollRestored = true;
+        };
+        elementsBody.contentContainer.RegisterCallback(apply);
+    }
+
+    // The fold state is also kept in EditorPrefs (by guid), so items reopen as they were after a script reload.
+    private void SetUnfolded(T element, bool unfolded)
+    {
+        if (unfolded) unfoldedElements.Add(element);
+        else unfoldedElements.Remove(element);
+        TemplateManagerStateService.SetUnfolded(element.Guid, unfolded);
+    }
+
+    private bool IsUnfolded(T element)
+    {
+        return unfoldedElements.Contains(element) || TemplateManagerStateService.IsUnfolded(element.Guid);
     }
 
     public IObservable<bool> OnSortClicked => onSortClicked;
@@ -111,6 +165,7 @@ internal class CollectionViewModel<T> : VisualElement, ITabActions where T : AiO
 
         sortCollectionButton = root.Q<Button>("SortCollection-Button");
         elementsBody = root.Q<ScrollView>("ElementsBody");
+        elementsBody.verticalScroller.valueChanged += _ => SaveScrollSoon();
         elementsBody.contentContainer.style.paddingTop = 0;
         elementsBody.contentContainer.style.paddingBottom = 0;
         elementsBody.contentContainer.style.paddingLeft = 0;
@@ -208,7 +263,7 @@ internal class CollectionViewModel<T> : VisualElement, ITabActions where T : AiO
             return;
         }
 
-        unfoldedElements.Add(typed); // a new item opens expanded so it can be filled in straight away
+        SetUnfolded(typed, true); // a new item opens expanded so it can be filled in straight away
         AddElement(typed);
     }
 
@@ -254,17 +309,21 @@ internal class CollectionViewModel<T> : VisualElement, ITabActions where T : AiO
             expanded.style.display = DisplayStyle.Flex;
 
             var listView = new ListViewModel { ExtendMenu = AppendListActions };
+            // Zebra stripes tinted with the tab's type colour (see UaiTheme.uss); every rebuild recreates the rows, so parity stays right.
+            listView.styleSheets.Add(StylesService.GetStyleSheet("UaiTheme"));
+            if (!string.IsNullOrEmpty(TabTypeClass)) listView.AddToClassList(TabTypeClass);
+            listView.EnableInClassList("uai-row--odd", i % 2 == 1);
             // The expanded editor is built lazily, only when its item is open (see FoldableComponent).
             folded.UpdateUi(element);
             expanded.Model = element;
             // Keep each item's fold state across rebuilds (reorder, sort, add, remove).
-            var startFolded = !unfoldedElements.Contains(element);
+            var startFolded = !IsUnfolded(element);
             listView.UpdateUi(expanded, folded, startFolded);
 
             listView.OnRemoveClicked
                 .Subscribe(_ =>
                 {
-                    unfoldedElements.Remove(element);
+                    SetUnfolded(element, false);
                     collection.Remove(element);
                 })
                 .AddTo(listViewSubscriptions);
@@ -296,8 +355,7 @@ internal class CollectionViewModel<T> : VisualElement, ITabActions where T : AiO
             listView.OnFoldChanged
                 .Subscribe(isFolded =>
                 {
-                    if (isFolded) unfoldedElements.Remove(element);
-                    else unfoldedElements.Add(element);
+                    SetUnfolded(element, !isFolded);
                 })
                 .AddTo(listViewSubscriptions);
 
@@ -310,6 +368,8 @@ internal class CollectionViewModel<T> : VisualElement, ITabActions where T : AiO
                 .AddTo(listViewSubscriptions);
             elementsBody.Add(listView);
         }
+
+        RestoreScroll();
 
         if(expandedList.Count > collection.Count)
         {

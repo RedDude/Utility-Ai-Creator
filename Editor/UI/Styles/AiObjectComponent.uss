@@ -106,6 +106,7 @@ AgentComponent > TemplateContainer > #Footer {
     -unity-font-style: italic;
     font-size: 10px;
     margin-right: 8px;
+    -unity-text-align: middle-left;
 }
 
 #ResponseCurve-Dropdown{

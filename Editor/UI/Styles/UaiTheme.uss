@@ -70,6 +70,62 @@
     align-items: center;
 }
 
+/* Side by side: every list gets its own column and header instead of a tab. Narrow views stack the columns. */
+.uai-columns {
+    flex-direction: row;
+}
+
+/* Column widths are the flex-grow values set from code (they are what the user drags); basis 0 makes them plain ratios. */
+.uai-column {
+    flex-grow: 1;
+    flex-shrink: 1;
+    flex-basis: 0;
+    min-width: 0;
+    overflow: hidden;
+}
+
+.uai-column-header {
+    flex-wrap: wrap;
+}
+
+/* The handle between two columns: a wide hit area around a thin line. */
+.uai-splitter {
+    flex-shrink: 0;
+    width: 9px;
+    flex-direction: row;
+    justify-content: center;
+    cursor: resize-horizontal;
+}
+
+.uai-splitter-line {
+    width: 1px;
+    margin: 2px 0;
+    background-color: rgba(128, 128, 128, 0.4);
+}
+
+.uai-splitter:hover > .uai-splitter-line {
+    width: 3px;
+    background-color: rgb(58, 121, 187);
+}
+
+.uai-columns--stacked {
+    flex-direction: column;
+}
+
+.uai-columns--stacked > .uai-splitter {
+    display: none;
+}
+
+.uai-columns--stacked > .uai-column {
+    flex-grow: 0;
+    flex-basis: auto;
+    padding: 6px 0 0 0;
+}
+
+.uai-columns--stacked > .uai-column.uai-column--first {
+    padding-top: 0;
+}
+
 /* Settings form: one setting per row, labels in a fixed column. */
 .uai-form {
     flex-direction: column;
@@ -106,3 +162,19 @@
 .uai-tab--selected.uai-type--consideration, .uai-tab--selected.uai-type--consideration:hover { border-bottom-color: rgb(196, 120, 30); background-color: rgba(196, 120, 30, 0.22); }
 .uai-tab--selected.uai-type--action, .uai-tab--selected.uai-type--action:hover { border-bottom-color: rgb(30, 135, 150); background-color: rgba(30, 135, 150, 0.22); }
 .uai-tab--selected.uai-type--curve, .uai-tab--selected.uai-type--curve:hover { border-bottom-color: rgb(170, 80, 120); background-color: rgba(170, 80, 120, 0.22); }
+
+/* Zebra: every other item of a list is tinted with the colour of the tab that holds it. */
+.uai-row--odd.uai-type--ai { background-color: rgba(140, 90, 190, 0.10); }
+.uai-row--odd.uai-type--bucket { background-color: rgba(50, 118, 190, 0.10); }
+.uai-row--odd.uai-type--decision { background-color: rgba(46, 140, 90, 0.10); }
+.uai-row--odd.uai-type--consideration { background-color: rgba(196, 120, 30, 0.10); }
+.uai-row--odd.uai-type--action { background-color: rgba(30, 135, 150, 0.10); }
+.uai-row--odd.uai-type--curve { background-color: rgba(170, 80, 120, 0.10); }
+
+/* The area under a tab is tinted with the tab's colour. */
+.uai-tab-body.uai-type--ai { background-color: rgba(140, 90, 190, 0.08); }
+.uai-tab-body.uai-type--bucket { background-color: rgba(50, 118, 190, 0.08); }
+.uai-tab-body.uai-type--decision { background-color: rgba(46, 140, 90, 0.08); }
+.uai-tab-body.uai-type--consideration { background-color: rgba(196, 120, 30, 0.08); }
+.uai-tab-body.uai-type--action { background-color: rgba(30, 135, 150, 0.08); }
+.uai-tab-body.uai-type--curve { background-color: rgba(170, 80, 120, 0.08); }

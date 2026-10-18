@@ -18,7 +18,8 @@ public class ParameterComponent: VisualElement
 
     }
 
-    internal void UpdateUi(ParamBase parameter)
+    /// <param name="owner">The object the parameter belongs to; lets a game attach a picker to it (see <see cref="ParameterPickers"/>).</param>
+    internal void UpdateUi(ParamBase parameter, AiObjectModel owner = null)
     {
         disposables.Clear();
         Clear();
@@ -97,7 +98,15 @@ public class ParameterComponent: VisualElement
                         localField.value = p.Value;
                     })
                     .AddTo(disposables);
-                Add(localField);
+                var getChoices = ParameterPickers.Find(owner, parameter.Name);
+                if (getChoices == null)
+                {
+                    Add(localField);
+                }
+                else
+                {
+                    Add(CreatePickerRow(localField, p, getChoices));
+                }
                 this.field = localField;
 
             }
@@ -175,6 +184,37 @@ public class ParameterComponent: VisualElement
             }
         }
         
+    }
+
+    // The text field stays (a value can still be typed); the button next to it opens the game's list of choices.
+    private static VisualElement CreatePickerRow(TextField textField, ParamString parameter, Func<IList<string>> getChoices)
+    {
+        var row = new VisualElement();
+        row.style.flexDirection = FlexDirection.Row;
+        row.style.alignItems = Align.Center;
+
+        textField.style.flexGrow = 1;
+        textField.style.flexShrink = 1;
+        textField.style.minWidth = 0;
+
+        var pick = new Button { text = "Pick", tooltip = "Pick from a searchable list" };
+        pick.style.flexShrink = 0;
+        pick.style.marginRight = 0;
+        pick.clicked += () =>
+        {
+            var choices = getChoices();
+            if (choices == null || choices.Count == 0)
+            {
+                Debug.LogWarning("UAI: nothing to pick for \"" + parameter.Name + "\".");
+                return;
+            }
+            var bounds = pick.worldBound;
+            SearchableDropdown.Show(new Vector2(bounds.xMin, bounds.yMax), 320f, choices, parameter.Value, picked => parameter.Value = picked);
+        };
+
+        row.Add(textField);
+        row.Add(pick);
+        return row;
     }
 
     ~ParameterComponent()

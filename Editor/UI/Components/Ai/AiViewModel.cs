@@ -33,7 +33,7 @@ internal class AiViewModel : AiObjectViewModel
         Body.Clear();
         Body.Add(root);
         collectionsContainer = root.Q<VisualElement>("CollectionsContainer");
-        tabView = new TabViewViewModel();
+        tabView = new TabViewViewModel(layoutKey: "Ai");
         collectionsContainer.Add(tabView);
 
         bucketCollection = new CollectionViewModel<Bucket>(TemplateService.Instance.Buckets, "Bucket", "Buckets");
