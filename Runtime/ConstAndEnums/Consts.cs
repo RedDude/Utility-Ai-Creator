@@ -38,7 +38,9 @@ public static class Consts
     internal static string FolderPath_TickerModes_Complete => Folder_TickerSettings_Complete + FolderName_TickerModes;
     internal static string FolderPath_PlayAbleAi_Complete => Folder_PlayAbleAi_Complete + FolderName_PlayAbleAis;
 
-    internal static string FileUasProjectTemp => CurrentProjectPath + "Temp/";
+    // Not "Temp/": the usual [Tt]emp/ ignore pattern would keep the backup out of version control.
+    // Relative to the Unity project root, so it does not follow CurrentProjectPath.
+    internal static string FileUasProjectTemp => "Assets/Data/YarnBots/";
 
     // internal static string FileUasPlayAblePathWithNameAndExtension => FileUasPlayAblePath + FileName_PLayAbleAi + "." + FileExtension_PlayAble;
     // internal static string FileUasPlayAblePath => CurrentProjectPath + FileName_PLayAbleAi+"/";
