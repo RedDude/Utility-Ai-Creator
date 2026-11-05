@@ -18,7 +18,20 @@ internal class LoggerComponent : RightPanelComponent<IAgent>
     private readonly Button foldoutButton;
 
     private bool isExpanded;
-    
+
+    private const string ExpandAllKey = "Logger.ExpandAll";
+    private const string ColorKey = "Logger.Color";
+    private const string RecordKey = "Logger.Record";
+
+    /// <summary>The last Expand All / Collapse All the user chose (null when never chosen), so new foldouts follow it.</summary>
+    internal static bool? RememberedExpandAll
+    {
+        get
+        {
+            var saved = TemplateManagerStateService.GetText(ExpandAllKey);
+            return saved.Length == 0 ? (bool?) null : saved == "1";
+        }
+    }
 
     public LoggerComponent()
     {
@@ -95,7 +108,16 @@ internal class LoggerComponent : RightPanelComponent<IAgent>
             ToggleFoldStatus(isExpanded);
         });
 
+        isExpanded = RememberedExpandAll ?? false;
         SetFoldButtonText();
+
+        // Color and Record come back the way the user left them.
+        var colorToggle = root.Q<Toggle>("Color-Toggle");
+        var recordToggle = root.Q<Toggle>("Record-Toggle");
+        colorToggle.SetValueWithoutNotify(TemplateManagerStateService.GetText(ColorKey) != "0");
+        recordToggle.SetValueWithoutNotify(TemplateManagerStateService.GetText(RecordKey) != "0");
+        colorToggle.RegisterCallback<ChangeEvent<bool>>(evt => TemplateManagerStateService.SetText(ColorKey, evt.newValue ? "1" : "0"));
+        recordToggle.RegisterCallback<ChangeEvent<bool>>(evt => TemplateManagerStateService.SetText(RecordKey, evt.newValue ? "1" : "0"));
 
         EditorApplication.pauseStateChanged += _ => UpdateGameState();
         
@@ -105,6 +127,7 @@ internal class LoggerComponent : RightPanelComponent<IAgent>
     private void ToggleFoldStatus(bool fold)
     {
         isExpanded = !fold;
+        TemplateManagerStateService.SetText(ExpandAllKey, isExpanded ? "1" : "0");
         root
             //.Query<BucketLogComponent>()
             .Query<Foldout>("LoggerFoldout")

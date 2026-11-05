@@ -38,7 +38,7 @@ internal class LogComponentPool<T> where T: LogComponent
             {
                 var foldout = new Foldout();
                 foldout.name = "LoggerFoldout";
-                foldout.value = startExpanded;
+                foldout.value = LoggerComponent.RememberedExpandAll ?? startExpanded;
                 root.Add(foldout);
                 foldouts.Add(foldout);
                 foldout.Add(component);
@@ -70,7 +70,7 @@ internal class LogComponentPool<T> where T: LogComponent
                 {
                     var foldout = new Foldout();
                     foldout.name = "LoggerFoldout";
-                    foldout.value = startExpanded;
+                    foldout.value = LoggerComponent.RememberedExpandAll ?? startExpanded;
                     foldout.Add(p);
                     foldout.text = p.GetUiName();
                     foldouts.Add(foldout);

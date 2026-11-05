@@ -45,6 +45,7 @@ internal abstract class AiObjectLogViewModel: LogComponent
         this.style.display = DisplayStyle.Flex;
 
         TypeLabel.text = Model.Type;
+        TypeStyleService.Apply(TypeLabel, TypeStyleService.GetTypeClass(Model), true);
         if (Model.CurrentTick == Model.LastSelectedTick)
         {
             NameLabel.text = Model.Name + "***Selected***";

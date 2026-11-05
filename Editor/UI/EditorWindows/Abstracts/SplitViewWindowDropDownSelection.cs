@@ -28,7 +28,9 @@ internal abstract class SplitViewWindowDropDownSelection<T> : EditorWindow
     private IDisposable agentCollectionUpdatedSub;
     private T selectedElement;
     private ReactiveList<T> elements;
-    private int SelectedIndex => elements == null ? -1 : elements.Values.IndexOf(selectedElement);
+    // True while the list still shows the agents of a run that ended, until a new bot starts.
+    private bool showingLastRun;
+    private int SelectedIndex => listElements.IndexOf(selectedElement);
     private AgentManager agentManager => AgentManager.Instance;
     protected Toolbar ToolbarTop;
     public void CreateGUI()
@@ -48,6 +50,7 @@ internal abstract class SplitViewWindowDropDownSelection<T> : EditorWindow
         identifierDropdown.RegisterCallback<ChangeEvent<string>>(evt =>
         {
             if (!agentManager.AgentIdentifiers.Contains(evt.newValue)) return;
+            TemplateManagerStateService.SetText(StateKey("AgentType"), evt.newValue);
             UpdateLeftPanel(evt.newValue);
         });
         ToolbarTop = root.Q<Toolbar>("ToolbarTop");
@@ -88,7 +91,7 @@ internal abstract class SplitViewWindowDropDownSelection<T> : EditorWindow
         {
             var typing = key.target is TextElement;
             var handled = false;
-            if (typing || elements == null || elements.Count == 0)
+            if (typing || listElements.Count == 0)
             {
                 // leave keys alone while typing or when there is nothing to select
             }
@@ -104,7 +107,7 @@ internal abstract class SplitViewWindowDropDownSelection<T> : EditorWindow
             }
             else if (key.keyCode == KeyCode.DownArrow && key.ctrlKey)
             {
-                SelectElementAtIndex(elements.Count - 1);
+                SelectElementAtIndex(listElements.Count - 1);
                 handled = true;
             }
             else if (key.keyCode == KeyCode.DownArrow)
@@ -122,6 +125,13 @@ internal abstract class SplitViewWindowDropDownSelection<T> : EditorWindow
     }
 
     protected virtual void Init() { }
+
+    // What the window remembers (agent type, selected agent) is stored per window class.
+    private string StateKey(string name) => GetType().Name + "." + name;
+
+    // The selected agent is remembered per agent type, by name (agents are recreated on every Play).
+    private string RememberedElementName() =>
+        TemplateManagerStateService.GetText(StateKey("Agent." + identifierDropdown.value));
 
     private void OnPlayModeChanged(PlayModeStateChange change)
     {
@@ -162,16 +172,16 @@ internal abstract class SplitViewWindowDropDownSelection<T> : EditorWindow
 
     private void SelectElementAtIndex(int index)
     {
-        if (elements == null || elements.Count == 0) return;
+        if (listElements.Count == 0) return;
 
         if (index < 0)
         {
             index = 0;
-        } else if (index >= elements.Count)
+        } else if (index >= listElements.Count)
         {
-            index = elements.Count - 1;
+            index = listElements.Count - 1;
         }
-        SelectedElement = elements.Values[index];
+        SelectedElement = listElements[index];
     }
 
     protected abstract RightPanelComponent<T> GetRightPanelComponent();
@@ -181,7 +191,13 @@ internal abstract class SplitViewWindowDropDownSelection<T> : EditorWindow
         identifierDropdown.choices = agentManager.AgentIdentifiers;
         if (agentManager.AgentIdentifiers.Count > 0)
         {
-            identifierDropdown.SetValueWithoutNotify(identifierDropdown.choices.First());
+            // Keep what is showing; after a restart fall back to the last type used, then to the first.
+            var choices = identifierDropdown.choices;
+            var saved = TemplateManagerStateService.GetText(StateKey("AgentType"));
+            var wanted = choices.Contains(identifierDropdown.value) ? identifierDropdown.value
+                : choices.Contains(saved) ? saved
+                : choices.First();
+            identifierDropdown.SetValueWithoutNotify(wanted);
             identifierDropdown.SetEnabled(true);
             UpdateLeftPanel(identifierDropdown.value);
         }
@@ -214,17 +230,46 @@ internal abstract class SplitViewWindowDropDownSelection<T> : EditorWindow
 
     private void LoadElements(List<T> newElements)
     {
+        // Agents unregister when Play stops (or a bot is destroyed). Keep the last ones, and their logs,
+        // on screen until a new bot starts instead of emptying the window.
+        if (newElements.Count == 0 && listElements.Count > 0)
+        {
+            showingLastRun = true;
+            UpdateEmptyState();
+            return;
+        }
+
+        showingLastRun = false;
         SelectedElement = default(T);
         listElements.Clear();
         listElements.AddRange(newElements);
         listView.ClearSelection();
         listView.Rebuild();
         UpdateEmptyState();
+        RestoreSelection();
+    }
+
+    // A rebuilt list (an agent registered, Play was pressed) keeps the agent the user was looking at.
+    private void RestoreSelection()
+    {
+        if (listElements.Count == 0 || string.IsNullOrEmpty(identifierDropdown.value)) return;
+        var remembered = RememberedElementName();
+        if (string.IsNullOrEmpty(remembered)) return;
+        var found = listElements.FindIndex(e => GetNameFromElement(e) == remembered);
+        if (found >= 0) SelectedElement = listElements[found];
     }
 
     private void UpdateEmptyState()
     {
         if (emptyState == null) return;
+
+        if (showingLastRun)
+        {
+            emptyState.style.display = DisplayStyle.Flex;
+            emptyState.messageType = HelpBoxMessageType.Info;
+            emptyState.text = "Showing the last run. It is replaced when a new bot starts.";
+            return;
+        }
 
         if (listElements.Count > 0)
         {
@@ -277,6 +322,10 @@ internal abstract class SplitViewWindowDropDownSelection<T> : EditorWindow
         set
         {
             selectedElement = value;
+            if (!EqualityComparer<T>.Default.Equals(value, default(T)) && !string.IsNullOrEmpty(identifierDropdown?.value))
+            {
+                TemplateManagerStateService.SetText(StateKey("Agent." + identifierDropdown.value), GetNameFromElement(value));
+            }
             SelectedElementChanged();
         }
     }

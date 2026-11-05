@@ -91,4 +91,9 @@ internal static class TemplateManagerStateService
         var text = string.Join(",", weights.Select(w => w.ToString("R", CultureInfo.InvariantCulture)));
         EditorPrefs.SetString(Key("Columns", layout), text);
     }
+
+    /// <summary>Free-form remembered text for windows that are not the Template Manager (the Log window); empty when never set.</summary>
+    internal static string GetText(string name) => EditorPrefs.GetString(Key(name), "");
+
+    internal static void SetText(string name, string value) => EditorPrefs.SetString(Key(name), value ?? "");
 }

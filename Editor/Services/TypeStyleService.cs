@@ -34,8 +34,27 @@ internal static class TypeStyleService
         return null;
     }
 
+    internal static string GetTypeClass(AiObjectLog log)
+    {
+        switch (log)
+        {
+            case AiLog _: return "uai-type--ai";
+            case BucketLog _: return "uai-type--bucket";
+            case DecisionLog _: return "uai-type--decision";
+            case ConsiderationLog _: return "uai-type--consideration";
+            case AgentActionLog _: return "uai-type--action";
+            case ResponseCurveLog _: return "uai-type--curve";
+            default: return null;
+        }
+    }
+
     /// <param name="asBadge">true for a pill-shaped type label, false for a coloured left bar.</param>
     internal static void Apply(VisualElement element, AiObjectModel model, bool asBadge)
+    {
+        Apply(element, model == null ? null : GetTypeClass(model), asBadge);
+    }
+
+    internal static void Apply(VisualElement element, string typeClass, bool asBadge)
     {
         var theme = StylesService.GetStyleSheet("UaiTheme");
         if (theme != null && !element.styleSheets.Contains(theme))
@@ -49,7 +68,6 @@ internal static class TypeStyleService
         }
 
         element.EnableInClassList(asBadge ? "uai-type-badge" : "uai-type-bar", true);
-        var typeClass = model == null ? null : GetTypeClass(model);
         if (typeClass != null)
         {
             element.AddToClassList(typeClass);
